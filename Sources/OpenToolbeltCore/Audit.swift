@@ -3,8 +3,8 @@ import Foundation
 public struct AuditResult: Sendable {
     /// Per-agent installed-vs-used reports for the agents whose logs we read.
     public var agents: [AgentReport]
-    /// Every skill across every supported agent.
-    public var skills: SkillMatrix
+    /// Every skill and MCP server across every supported agent.
+    public var library: Library
     /// Skill and MCP calls per day, oldest first.
     public var activity: [DailyActivity]
     public var insights: [Insight] { Insights.compute(self) }
@@ -42,13 +42,14 @@ public enum Audit {
         let codex = Codex(home: home)
         let claudeInventory = claude.inventory()
         let claudeUsage = claude.usage(), codexUsage = codex.usage()
+        let reports = [
+            report(.claudeCode, installed: claudeInventory, scan: claudeUsage),
+            report(.codex, installed: codex.inventory(), scan: codexUsage),
+        ]
         return AuditResult(
-            agents: [
-                report(.claudeCode, installed: claudeInventory, scan: claudeUsage),
-                report(.codex, installed: codex.inventory(), scan: codexUsage),
-            ],
-            skills: SkillMatrix.build(home: home, claudeInventory: claudeInventory,
-                                      usage: [.claudeCode: claudeUsage, .codex: codexUsage]),
+            agents: reports,
+            library: Library.build(home: home, claudeInventory: claudeInventory, reports: reports,
+                                   usage: [.claudeCode: claudeUsage, .codex: codexUsage]),
             activity: DailyActivity.daily(claudeUsage.events + codexUsage.events, days: 30, now: now)
         )
     }

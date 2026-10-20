@@ -31,12 +31,12 @@ public enum Insights {
     /// Suggestions in the order they matter: context weight first, then
     /// getting more out of what works, then housekeeping.
     public static func compute(_ result: AuditResult) -> [Insight] {
-        let matrix = result.skills
-        let detected = matrix.agents.filter(\.detected).map(\.agent)
+        let library = result.library
+        let detected = library.agents.filter(\.detected).map(\.agent)
         var insights: [Insight] = []
 
         let prune = detected.filter(\.tracksUsage).compactMap { agent -> (Insight, Int)? in
-            let idle = matrix.loaded(by: agent).filter { $0.cells[agent]?.uses == 0 }
+            let idle = library.loaded(by: agent).filter { $0.cells[agent]?.uses == 0 }
             guard !idle.isEmpty else { return nil }
             let tokens = idle.map(\.contextTokens).reduce(0, +)
             let names = idle.sorted { $0.contextTokens > $1.contextTokens }.map(\.invocation)
@@ -44,26 +44,23 @@ public enum Insights {
         }
         insights += prune.sorted { $0.1 > $1.1 }.map(\.0)
 
-        for row in matrix.rows where row.totalUses > 0 {
+        for row in library.rows where row.kind == .skill && row.totalUses > 0 {
             guard case .external(let source, _) = row.origin else { continue }
             let missing = detected.filter { row.cells[$0]?.installed != true }
             if !missing.isEmpty { insights.append(Insight(.spread(skill: row.name, source: source, to: missing))) }
         }
 
-        let stale = matrix.rows.filter { row in
+        let stale = library.rows.filter { row in
             if case .external = row.origin { return row.installedAgents.isEmpty }
             return false
         }
         if !stale.isEmpty { insights.append(Insight(.staleLock(skills: stale.map(\.name)))) }
 
-        for report in result.agents {
-            // The same server configured in several projects counts once.
-            var seen = Set<String>()
-            let idle = report.items
-                .filter { $0.item.kind == .mcpServer && $0.item.enabled && $0.uses == 0 }
-                .map(\.item.name)
-                .filter { seen.insert($0).inserted }
-            if !idle.isEmpty { insights.append(Insight(.idleServers(agent: report.agent, servers: idle))) }
+        for agent in detected where agent.tracksUsage {
+            let idle = library.rows.filter {
+                $0.kind == .mcpServer && $0.enabled && $0.cells[agent]?.installed == true && $0.cells[agent]?.uses == 0
+            }
+            if !idle.isEmpty { insights.append(Insight(.idleServers(agent: agent, servers: idle.map(\.name)))) }
         }
         return insights
     }

@@ -33,6 +33,19 @@ public enum Agent: String, Codable, Sendable, CaseIterable {
         }
     }
 
+    /// Where agents without usage logs keep their MCP servers: a JSON file and
+    /// the key holding the server map. Claude Code and Codex are read in full
+    /// by their own scanners instead.
+    var mcpConfig: (path: String, key: String)? {
+        switch self {
+        case .claudeCode, .codex: nil
+        case .cursor: (".cursor/mcp.json", "mcpServers")
+        case .opencode: (".config/opencode/opencode.json", "mcp")
+        case .windsurf: (".codeium/windsurf/mcp_config.json", "mcpServers")
+        case .geminiCLI: (".gemini/settings.json", "mcpServers")
+        }
+    }
+
     /// A folder whose presence means the agent is set up on this Mac.
     var homeMarker: String {
         switch self {

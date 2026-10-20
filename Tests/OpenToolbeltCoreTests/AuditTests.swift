@@ -134,7 +134,7 @@ struct FakeHome {
     }
 }
 
-@Suite struct SkillMatrixTests {
+@Suite struct LibraryTests {
     let home = FakeHome()
 
     init() throws {
@@ -150,10 +150,16 @@ struct FakeHome {
                                                    withDestinationURL: h.root.appendingPathComponent(".agents/skills/shared"))
         try h.skill(".cursor/skills/handmade", name: "handmade")
         try h.skill(".cursor/skills-cursor/review", name: "review")
-        try h.write(".claude/projects/-work/s1.jsonl", h.toolUse("t1", "Skill", ["skill": "shared"]))
+        try h.write(".claude/projects/-work/s1.jsonl", [
+            h.toolUse("t1", "Skill", ["skill": "shared"]),
+            h.toolUse("t2", "mcp__search__find"),
+        ].joined(separator: "\n"))
+        try h.write(".claude.json", h.json(["mcpServers": ["search": [:]],
+                                            "projects": ["/p": ["mcpServers": ["search": [:]]]]]))
+        try h.write(".cursor/mcp.json", h.json(["mcpServers": ["search": [:], "maps": [:]]]))
     }
 
-    func matrix() -> SkillMatrix { Audit.run(home: home.root).skills }
+    func matrix() -> Library { Audit.run(home: home.root).library }
 
     @Test func externalSkillsKeepTheirSourceAndPerAgentState() throws {
         let rows = matrix().rows
@@ -172,8 +178,18 @@ struct FakeHome {
         let rows = matrix().rows
         let handmade = try #require(rows.first { $0.name == "handmade" })
         #expect(handmade.origin == .local)
-        #expect(handmade.cells[.cursor] == SkillCell(installed: true, uses: nil, lastUsed: nil))
+        #expect(handmade.cells[.cursor] == Cell(installed: true, uses: nil, lastUsed: nil))
         #expect(rows.first { $0.name == "review" }?.origin == .builtIn(.cursor))
+    }
+
+    @Test func mcpServersMergeAcrossProjectsAndAgents() throws {
+        let servers = matrix().rows.filter { $0.kind == .mcpServer }
+        #expect(servers.map(\.name) == ["maps", "search"])
+        let search = try #require(servers.first { $0.name == "search" })
+        #expect(search.origin == .configured)
+        #expect(search.cells[.claudeCode]?.uses == 1)  // user-level call; the project copy saw none
+        #expect(search.cells[.cursor] == Cell(installed: true, uses: nil, lastUsed: nil))
+        #expect(search.contextTokens == 0)
     }
 
     @Test func detectsAgentsByTheirHomeFolder() {
@@ -213,7 +229,7 @@ struct FakeHome {
     }
 
     @Test func blockScalarDescriptionsAreRead() throws {
-        let row = try #require(Audit.run(home: home.root).skills.rows.first { $0.name == "loved" })
+        let row = try #require(Audit.run(home: home.root).library.rows.first { $0.name == "loved" })
         #expect(row.summary == "Two lines of description.")
     }
 
