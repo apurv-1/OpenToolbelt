@@ -64,6 +64,7 @@ struct FakeHome {
             h.toolUse("t6", "mcp__local__x", cwd: "/p/sub"),
             h.prompt("<command-name>/beta</command-name>"),
             h.prompt("<command-name>/model</command-name>"),
+            #"{"type": "assistant", "cwd": "/work", "message": {"content": [{"type": "tool_use", "id": "t8", "name": "Skill", "input": {"skill": "alpha"}}]}}"#,
             "not json",
         ].joined(separator: "\n"))
         try h.write(".claude/projects/-work/s1/subagents/agent-1.jsonl",
@@ -106,7 +107,7 @@ struct FakeHome {
         let claude = ClaudeCode(home: home.root)
         let report = Audit.report(.claudeCode, installed: claude.inventory(), scan: claude.usage())
         #expect(report.sessions == 1)
-        #expect(uses(report, "alpha") == 1)
+        #expect(uses(report, "alpha") == 2)  // one compact line, one spaced line
         #expect(uses(report, "beta") == 1)
         #expect(uses(report, "anthropic-skills:docs") == 1)
         #expect(uses(report, "treg") == 1)

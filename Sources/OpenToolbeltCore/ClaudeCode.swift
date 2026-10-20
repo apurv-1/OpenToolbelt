@@ -119,7 +119,9 @@ public struct ClaudeCode: Sendable {
                 scan.see(values?.creationDate)
                 scan.see(values?.contentModificationDate)
             }
-            Files.forEachLine(in: file, containingAny: ["\"type\":\"tool_use\"", "<command-name>"]) { line in
+            // Match the quoted value alone, so spacing in the JSON does not matter;
+            // the closing quote keeps `"tool_use_id"` from matching.
+            Files.forEachLine(in: file, containingAny: ["\"tool_use\"", "<command-name>"]) { line in
                 guard let event = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
                       let message = event["message"] as? [String: Any] else { return }
                 let timestamp = Timestamps.parse(event["timestamp"])
