@@ -1,0 +1,17 @@
+# SwiftPM / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# Packaged app output
+dist/
+
+# Local agent and editor state
+.claude/
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
