@@ -1,4 +1,4 @@
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 struct MainWindow: View {
@@ -38,7 +38,7 @@ struct Sidebar: View {
             HStack(spacing: 8) {
                 Image(nsImage: MenuBarIcon.image).renderingMode(.template)
                     .foregroundStyle(Theme.Palette.accent)
-                Text("OpenSkills").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Palette.text)
+                Text("OpenToolbelt").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Palette.text)
             }
             .padding(.horizontal, 18)
             .padding(.top, 8)

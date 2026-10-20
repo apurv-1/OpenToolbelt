@@ -1,5 +1,5 @@
 // Draws the 1024px app icon. scripts/build-app.sh turns it into AppIcon.icns.
-// The menu bar glyph is drawn in app code: Sources/OpenSkillsApp/MenuBarIcon.swift.
+// The menu bar glyph is drawn in app code: Sources/OpenToolbeltApp/MenuBarIcon.swift.
 // Usage: swift -O make-icon.swift <output-dir>
 import AppKit
 

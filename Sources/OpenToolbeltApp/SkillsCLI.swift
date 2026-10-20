@@ -1,6 +1,6 @@
 import Foundation
 import Observation
-import OpenSkillsCore
+import OpenToolbeltCore
 
 /// Runs `npx skills` and streams its output. Runs through a login,
 /// interactive zsh so the user's Node setup (nvm, fnm, Homebrew) is on PATH,

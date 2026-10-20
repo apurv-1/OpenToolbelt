@@ -1,5 +1,5 @@
 import Charts
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// The dashboard: what agents carry, what they use, and what to do about it.

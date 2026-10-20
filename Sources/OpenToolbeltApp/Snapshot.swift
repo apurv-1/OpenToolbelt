@@ -1,13 +1,13 @@
 #if DEBUG
 import AppKit
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// Debug-only: renders the main views offscreen to PNGs in light and dark,
 /// for design review without screenshotting the desktop. AppKit-backed
 /// controls (List, TextField) do not render offscreen, so pages are composed
 /// from their content views.
-/// Usage: swift run OpenSkillsApp --snapshot <dir>
+/// Usage: swift run OpenToolbeltApp --snapshot <dir>
 @MainActor
 enum Snapshot {
     static func run(to directory: URL) {

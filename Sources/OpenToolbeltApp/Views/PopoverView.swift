@@ -1,4 +1,4 @@
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// The panel that drops down from the menu bar icon, in the style of a
@@ -46,7 +46,7 @@ struct PopoverView: View {
                 store.showingAddSkill = true
             }
             .keyboardShortcut("n")
-            MenuRow(title: "Open OpenSkills", shortcut: "⌘O") {
+            MenuRow(title: "Open OpenToolbelt", shortcut: "⌘O") {
                 Image(systemName: "macwindow").foregroundStyle(Theme.Palette.textSecondary)
             } action: { open(store.page) }
             .keyboardShortcut("o")

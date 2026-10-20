@@ -1,6 +1,6 @@
 import Foundation
 import Observation
-import OpenSkillsCore
+import OpenToolbeltCore
 
 /// What the skills screen is showing.
 enum SkillFilter: Hashable {

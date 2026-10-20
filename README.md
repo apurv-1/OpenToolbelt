@@ -1,15 +1,13 @@
-# OpenSkills
+# OpenToolbelt
 
 A local macOS menu bar app that shows every skill your coding agents have, where each one came from, and which ones actually get used.
-
-> Working name. The final name is still open.
 
 ## Why
 
 Coding agents collect skills and MCP servers fast.
 A plugin brings twenty skills, a popular repo brings thirty more, and nobody knows which of them ever run.
 Your agents already write down everything they do in local session transcripts.
-OpenSkills reads those transcripts and puts the answer next to what is installed.
+OpenToolbelt reads those transcripts and puts the answer next to what is installed.
 
 ## What it shows
 
@@ -47,7 +45,7 @@ The only time it changes anything is when you add or remove a skill, and then it
 
 ## Install
 
-Download `OpenSkills.dmg` from the releases page and drag the app to Applications.
+Download `OpenToolbelt.dmg` from the releases page and drag the app to Applications.
 The app is not notarized yet, so macOS blocks the first launch.
 Open **System Settings > Privacy & Security** and click **Open Anyway**.
 
@@ -66,7 +64,7 @@ swift test
 Run the command-line report:
 
 ```bash
-swift run -c release openskills
+swift run -c release opentoolbelt
 ```
 
 Build the app bundle and a DMG into `dist/`:
@@ -91,10 +89,10 @@ Project-scoped items only count usage from sessions that ran inside that project
 
 | Path | What it is |
 |---|---|
-| `Sources/OpenSkillsCore` | Scanner: reads config and transcripts, builds the report. No UI. |
-| `Sources/openskills` | Command-line report on top of the core. |
-| `Sources/OpenSkillsApp` | SwiftUI menu bar app and window. |
-| `Sources/OpenSkillsApp/DesignSystem` | Tokens, components, and Metal shader backdrops. See [docs/design-system.md](docs/design-system.md). |
+| `Sources/OpenToolbeltCore` | Scanner: reads config and transcripts, builds the report. No UI. |
+| `Sources/opentoolbelt` | Command-line report on top of the core. |
+| `Sources/OpenToolbeltApp` | SwiftUI menu bar app and window. |
+| `Sources/OpenToolbeltApp/DesignSystem` | Tokens, components, and Metal shader backdrops. See [docs/design-system.md](docs/design-system.md). |
 | `Design/AppIcon` | The app icon and the script that draws it. |
 | `scripts/build-app.sh` | Packages the app and DMG. |
 

@@ -1,7 +1,7 @@
 # Design system
 
 The app is a calm, dense tool in the spirit of Linear and Raycast, with one small live radar as its signature.
-All tokens live in `Sources/OpenSkillsApp/DesignSystem/Theme.swift`, and views never hard-code colors or sizes.
+All tokens live in `Sources/OpenToolbeltApp/DesignSystem/Theme.swift`, and views never hard-code colors or sizes.
 
 ## Principles
 
@@ -58,4 +58,4 @@ Each blip is one skill: used skills glow and flare as the beam passes, unused on
 
 The app icon is drawn by `Design/AppIcon/make-icon.swift`.
 The menu bar glyph is drawn in code by `MenuBarIcon.swift` as a template image.
-Agent logos are SVGs from lobe-icons in `Sources/OpenSkillsApp/Resources/AgentIcons`.
+Agent logos are SVGs from lobe-icons in `Sources/OpenToolbeltApp/Resources/AgentIcons`.

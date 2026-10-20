@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-struct OpenSkillsApp: App {
+struct OpenToolbeltApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var store: Store = {
         let store = Store()
@@ -17,7 +17,7 @@ struct OpenSkillsApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("OpenSkills", id: WindowID.main) {
+        Window("OpenToolbelt", id: WindowID.main) {
             MainWindow().environment(store)
         }
         .defaultSize(width: 1080, height: 740)

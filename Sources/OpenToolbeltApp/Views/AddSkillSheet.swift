@@ -1,4 +1,4 @@
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// Install skills with `npx skills add`, globally, for the chosen agents.

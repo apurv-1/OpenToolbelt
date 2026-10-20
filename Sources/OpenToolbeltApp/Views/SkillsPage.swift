@@ -1,4 +1,4 @@
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// The skill x agent matrix: one row per skill, one column per agent.

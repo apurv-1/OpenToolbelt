@@ -27,7 +27,7 @@ enum MenuBarIcon {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "OpenSkills"
+        image.accessibilityDescription = "OpenToolbelt"
         return image
     }()
 }

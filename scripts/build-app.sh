@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Builds dist/OpenSkills.app for Apple Silicon. Pass --dmg to also build dist/OpenSkills.dmg.
+# Builds dist/OpenToolbelt.app for Apple Silicon. Pass --dmg to also build dist/OpenToolbelt.dmg.
 # The app is ad-hoc signed, not notarized: on first launch, macOS asks you to
 # allow it in System Settings > Privacy & Security.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${VERSION:-0.1.0}"
-APP="dist/OpenSkills.app"
+APP="dist/OpenToolbelt.app"
 
-swift build -c release --arch arm64 --product OpenSkillsApp
+swift build -c release --arch arm64 --product OpenToolbeltApp
 BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/OpenSkillsApp" "$APP/Contents/MacOS/OpenSkills"
+cp "$BIN_DIR/OpenToolbeltApp" "$APP/Contents/MacOS/OpenToolbelt"
 # SwiftPM resources (agent icons); Bundle.module finds them in Contents/Resources.
-cp -R "$BIN_DIR/OpenSkills_OpenSkillsApp.bundle" "$APP/Contents/Resources/"
+cp -R "$BIN_DIR/OpenToolbelt_OpenToolbeltApp.bundle" "$APP/Contents/Resources/"
 
 ICONSET="$(mktemp -d)/AppIcon.iconset"
 mkdir -p "$ICONSET"
@@ -30,10 +30,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>OpenSkills</string>
-  <key>CFBundleDisplayName</key><string>OpenSkills</string>
-  <key>CFBundleIdentifier</key><string>dev.openskills.app</string>
-  <key>CFBundleExecutable</key><string>OpenSkills</string>
+  <key>CFBundleName</key><string>OpenToolbelt</string>
+  <key>CFBundleDisplayName</key><string>OpenToolbelt</string>
+  <key>CFBundleIdentifier</key><string>dev.opentoolbelt.app</string>
+  <key>CFBundleExecutable</key><string>OpenToolbelt</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
@@ -52,6 +52,6 @@ if [[ "${1:-}" == "--dmg" ]]; then
   STAGE="$(mktemp -d)"
   cp -R "$APP" "$STAGE/"
   ln -s /Applications "$STAGE/Applications"
-  hdiutil create -volname OpenSkills -srcfolder "$STAGE" -ov -format UDZO dist/OpenSkills.dmg >/dev/null
-  echo "Built dist/OpenSkills.dmg"
+  hdiutil create -volname OpenToolbelt -srcfolder "$STAGE" -ov -format UDZO dist/OpenToolbelt.dmg >/dev/null
+  echo "Built dist/OpenToolbelt.dmg"
 fi

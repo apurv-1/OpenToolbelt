@@ -1,10 +1,10 @@
 import Foundation
 import Testing
-@testable import OpenSkillsCore
+@testable import OpenToolbeltCore
 
 /// Builds a throwaway home directory shaped like a real Claude Code + Codex setup.
 struct FakeHome {
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent("openskills-\(UUID().uuidString)")
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("opentoolbelt-\(UUID().uuidString)")
 
     func write(_ path: String, _ text: String) throws {
         let url = root.appendingPathComponent(path)

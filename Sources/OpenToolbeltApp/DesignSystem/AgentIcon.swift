@@ -1,5 +1,5 @@
 import AppKit
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
 /// An agent's brand mark. SVGs come from lobe-icons (MIT, github.com/lobehub/lobe-icons);

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Builds `npx skills` invocations. The vercel-labs/skills CLI does the real
-/// installing, linking and lockfile bookkeeping; OpenSkills only drives it.
+/// installing, linking and lockfile bookkeeping; OpenToolbelt only drives it.
 public enum SkillsCommand {
     /// Installs from `source` (owner/repo, a git URL, or a local path) globally
     /// for `agents`. An empty `skills` list installs every skill in the source.

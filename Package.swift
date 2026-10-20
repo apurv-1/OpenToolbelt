@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "OpenSkills",
+    name: "OpenToolbelt",
     platforms: [.macOS(.v15)],
     products: [
-        .library(name: "OpenSkillsCore", targets: ["OpenSkillsCore"]),
-        .executable(name: "openskills", targets: ["openskills"]),
+        .library(name: "OpenToolbeltCore", targets: ["OpenToolbeltCore"]),
+        .executable(name: "opentoolbelt", targets: ["opentoolbelt"]),
     ],
     targets: [
-        .target(name: "OpenSkillsCore"),
-        .executableTarget(name: "openskills", dependencies: ["OpenSkillsCore"]),
-        .executableTarget(name: "OpenSkillsApp", dependencies: ["OpenSkillsCore"], resources: [.copy("Resources/AgentIcons")]),
-        .testTarget(name: "OpenSkillsCoreTests", dependencies: ["OpenSkillsCore"]),
+        .target(name: "OpenToolbeltCore"),
+        .executableTarget(name: "opentoolbelt", dependencies: ["OpenToolbeltCore"]),
+        .executableTarget(name: "OpenToolbeltApp", dependencies: ["OpenToolbeltCore"], resources: [.copy("Resources/AgentIcons")]),
+        .testTarget(name: "OpenToolbeltCoreTests", dependencies: ["OpenToolbeltCore"]),
     ]
 )

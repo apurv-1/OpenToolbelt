@@ -7,4 +7,4 @@ if let flag = CommandLine.arguments.firstIndex(of: "--snapshot"), flag + 1 < Com
 }
 #endif
 
-OpenSkillsApp.main()
+OpenToolbeltApp.main()

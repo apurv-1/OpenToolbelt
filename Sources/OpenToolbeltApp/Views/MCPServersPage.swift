@@ -1,7 +1,7 @@
-import OpenSkillsCore
+import OpenToolbeltCore
 import SwiftUI
 
-/// MCP servers from the agents whose config and logs OpenSkills reads.
+/// MCP servers from the agents whose config and logs OpenToolbelt reads.
 struct MCPServersPage: View {
     @Environment(Store.self) private var store
     @State private var query = ""

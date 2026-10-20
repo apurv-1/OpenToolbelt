@@ -45,7 +45,7 @@ public enum Agent: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Whether OpenSkills can read this agent's session logs for usage.
+    /// Whether OpenToolbelt can read this agent's session logs for usage.
     public var tracksUsage: Bool { self == .claudeCode || self == .codex }
 }
 
