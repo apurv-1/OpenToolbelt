@@ -20,6 +20,7 @@ enum Snapshot {
             NSAppearance(named: appearance)!.performAsCurrentDrawingAppearance {
                 let scheme: ColorScheme = name == "dark" ? .dark : .light
                 write(PopoverView(), store, scheme, width: 300, to: directory.appendingPathComponent("popover-\(name).png"))
+                write(OverviewContent().padding(24), store, scheme, width: 1000, to: directory.appendingPathComponent("overview-\(name).png"))
                 let skills = VStack(spacing: 0) {
                     MatrixColumnHeader()
                     Hairline()

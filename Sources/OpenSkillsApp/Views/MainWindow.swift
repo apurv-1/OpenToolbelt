@@ -12,6 +12,7 @@ struct MainWindow: View {
         } detail: {
             Group {
                 switch store.page {
+                case .overview: OverviewPage()
                 case .skills(let filter): SkillsPage(filter: filter)
                 case .mcpServers: MCPServersPage()
                 }
@@ -45,6 +46,7 @@ struct Sidebar: View {
 
             List(selection: $store.page) {
                 Section {
+                    item("Overview", symbol: "gauge.with.dots.needle.33percent", count: nil, page: .overview)
                     item("All skills", symbol: "square.stack", count: store.rows.count, page: .skills(.all))
                     item("External", symbol: "shippingbox", count: store.rows(.external).count, page: .skills(.external))
                     item("Never used", symbol: "moon", count: store.rows(.idle).count, page: .skills(.idle))
@@ -84,12 +86,12 @@ struct Sidebar: View {
         }
     }
 
-    private func item(_ title: String, symbol: String, count: Int, page: Page) -> some View {
+    private func item(_ title: String, symbol: String, count: Int?, page: Page) -> some View {
         HStack(spacing: 8) {
             Image(systemName: symbol).font(.system(size: 12)).foregroundStyle(Theme.Palette.textSecondary).frame(width: 14)
             Text(title).foregroundStyle(Theme.Palette.text)
             Spacer()
-            Text("\(count)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textTertiary)
+            if let count { Text("\(count)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textTertiary) }
         }
         .tag(page)
     }

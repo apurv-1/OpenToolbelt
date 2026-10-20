@@ -36,6 +36,7 @@ struct SkillsPage: View {
         case .external: "External skills"
         case .idle: "Never used"
         case .agent(let agent): agent.displayName
+        case .idleIn(let agent): "Unused in \(agent.displayName)"
         }
     }
 
@@ -192,7 +193,7 @@ struct MatrixRow: View {
         .onHover { hovering = $0 }
         .confirmationDialog("Remove \(row.name) from every agent?", isPresented: $confirmingRemove) {
             Button("Remove", role: .destructive) {
-                store.cli.run(SkillsCommand.remove(skill: row.name)) { store.refresh() }
+                store.cli.run(SkillsCommand.remove(skills: [row.name])) { store.refresh() }
                 store.showingAddSkill = true
             }
         } message: {

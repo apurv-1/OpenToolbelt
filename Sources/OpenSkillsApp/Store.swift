@@ -8,9 +8,12 @@ enum SkillFilter: Hashable {
     case external
     case idle
     case agent(Agent)
+    /// Loaded by one agent every session, never used there.
+    case idleIn(Agent)
 }
 
 enum Page: Hashable {
+    case overview
     case skills(SkillFilter)
     case mcpServers
 }
@@ -21,7 +24,7 @@ final class Store {
     private(set) var result: AuditResult?
     private(set) var isScanning = false
     private(set) var lastScan: Date?
-    var page: Page = .skills(.all)
+    var page: Page = .overview
     var showingAddSkill = false
     /// The `npx skills` runner shared by the add and remove flows.
     let cli = SkillsCLI()
@@ -51,6 +54,7 @@ final class Store {
         case .external: rows.filter(\.isExternal)
         case .idle: rows.filter(\.isIdle)
         case .agent(let agent): rows.filter { $0.cells[agent]?.installed == true }
+        case .idleIn(let agent): (result?.skills.loaded(by: agent) ?? []).filter { $0.cells[agent]?.uses == 0 }
         }
     }
 
@@ -149,6 +153,17 @@ extension InstalledItem {
 enum Format {
     static func day(_ date: Date?) -> String {
         date?.formatted(.dateTime.month(.abbreviated).day()) ?? "-"
+    }
+
+    /// 6588 -> "6.6k".
+    static func tokens(_ count: Int) -> String {
+        count < 1000 ? "\(count)" : String(format: "%.1fk", Double(count) / 1000)
+    }
+
+    /// "a", "a and b", "a, b and c".
+    static func list(_ items: [String]) -> String {
+        guard items.count > 1 else { return items.first ?? "" }
+        return items.dropLast().joined(separator: ", ") + " and " + items.last!
     }
 
     static func ago(_ date: Date?) -> String {
