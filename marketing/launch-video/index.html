@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenToolbelt 30s</title>
+<style>
+  @font-face { font-family: 'Inter'; src: url('assets/Inter.woff2') format('woff2'); font-weight: 100 900; font-style: normal; }
+  :root {
+    --bg: #F4F4F1;
+    --ink: #0E0E14;
+    --gray: #6E7180;
+    --line: rgba(14,14,20,0.075);
+    --accent: #10B981;
+    --accent-soft: #6EE7B7;
+    --card: #FFFFFF;
+    --card-border: rgba(14,14,20,0.10);
+    --dark: #111214;
+    --dark-2: #1A1B1E;
+    --red: #F26B6B;
+    --green: #2BC97A;
+    --amber: #F5B043;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01', 'tnum'; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  #grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 80px 80px; }
+  #sheen { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 50% 45%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%); }
+
+  .scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; }
+  .pop { opacity: 0; will-change: transform, opacity; }
+
+  /* Cursor dots */
+  #cursor { position: absolute; inset: 0; pointer-events: none; }
+  .dot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px; background: var(--accent); box-shadow: 0 0 0 3px rgba(16,185,129,0.14); }
+  .dot.white { background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.14); }
+
+  /* Agent chips and signal cards */
+  .chip, .sig { position: absolute; display: inline-flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; box-shadow: 0 1px 2px rgba(14,14,20,0.04), 0 8px 24px rgba(14,14,20,0.05); white-space: nowrap; }
+  .chip { padding: 14px 20px 14px 16px; font-size: 15px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+  .chip img { width: 26px; height: 26px; flex: none; }
+  .sig { padding: 14px 18px; font-family: var(--mono); font-size: 15px; color: var(--gray); letter-spacing: -0.01em; }
+  .sig b { color: var(--ink); font-weight: 600; }
+  .sig i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+  .sig i.a { background: var(--amber); } .sig i.r { background: var(--red); }
+
+  /* Type */
+  .h1 { font-size: 104px; line-height: 1.02; letter-spacing: -0.045em; font-weight: 600; }
+  .h2 { font-size: 76px; line-height: 1.04; letter-spacing: -0.04em; font-weight: 600; }
+  .h2 .w { display: inline-block; }
+  .sub { font-size: 26px; line-height: 1.45; color: var(--gray); letter-spacing: -0.012em; max-width: 640px; }
+  .eyebrow { font-family: var(--mono); font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 12px; }
+  .eyebrow::before { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 2px; }
+  .left { position: absolute; left: 160px; top: 50%; transform: translateY(-50%); width: 760px; display: flex; flex-direction: column; gap: 28px; }
+  .wordmark { font-size: 150px; font-weight: 600; letter-spacing: -0.05em; line-height: 1; }
+
+  /* Dark cards */
+  .dcard { position: absolute; background: var(--dark); color: #fff; border-radius: 22px; box-shadow: 0 30px 80px rgba(14,14,20,0.25), 0 2px 6px rgba(14,14,20,0.2); }
+  .label { font-family: var(--mono); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; }
+  .hr { height: 1px; background: rgba(255,255,255,0.09); margin: 28px 0; }
+
+  /* Cost card */
+  #cost { left: 1000px; top: 220px; width: 760px; padding: 40px 44px; }
+  #cost .row { display: flex; align-items: center; justify-content: space-between; }
+  #cost .agent { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; color: rgba(255,255,255,0.7); }
+  #cost .agent img { width: 22px; height: 22px; }
+  #cost .big { display: flex; align-items: baseline; gap: 16px; margin-top: 18px; }
+  #cost .big span { font-size: 132px; font-weight: 600; letter-spacing: -0.06em; line-height: 1; }
+  #cost .big small { font-size: 28px; color: rgba(255,255,255,0.5); letter-spacing: -0.01em; }
+  .facts { display: flex; flex-direction: column; gap: 16px; }
+  .fact { display: flex; align-items: center; gap: 12px; font-size: 21px; letter-spacing: -0.01em; }
+  .fact i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-soft); flex: none; }
+  .fact i.a { background: var(--amber); } .fact i.r { background: var(--red); }
+  .fact span { color: rgba(255,255,255,0.6); }
+
+  /* Suggestions card */
+  #sugg { left: 1000px; top: 230px; width: 780px; padding: 0; overflow: hidden; }
+  #sugg .head { display: flex; align-items: center; justify-content: space-between; padding: 24px 30px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  #sugg .head .ctx { font-size: 18px; color: rgba(255,255,255,0.55); }
+  #sugg .head .ctx b { color: #fff; font-weight: 600; font-size: 26px; letter-spacing: -0.03em; margin-left: 8px; }
+  .srow { display: flex; align-items: center; gap: 18px; padding: 22px 30px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .srow:last-child { border-bottom: none; }
+  .srow img { width: 30px; height: 30px; flex: none; }
+  .srow .ex { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--amber); flex: none; display: grid; place-items: center; color: var(--amber); font-weight: 700; font-size: 16px; }
+  .srow .t { flex: 1; }
+  .srow .t b { display: block; font-size: 21px; font-weight: 600; letter-spacing: -0.015em; }
+  .srow .t span { display: block; font-size: 16px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .srow .imp { font-size: 18px; font-weight: 600; color: var(--accent-soft); font-variant-numeric: tabular-nums; }
+  .btn { padding: 11px 18px; border-radius: 10px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 9px; background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+  .btn .st { width: 9px; height: 9px; border-radius: 50%; background: #052E1A; display: none; }
+  .btn.done { background: var(--green); color: #052E1A; border-color: transparent; }
+  .btn.done .st { display: inline-block; }
+  .btn.primary { background: #fff; color: var(--ink); border-color: transparent; }
+
+  /* Add skills card */
+  #add { left: 1000px; top: 240px; width: 760px; padding: 40px 44px; }
+  #add h3 { font-size: 34px; letter-spacing: -0.035em; font-weight: 600; margin-top: 14px; }
+  .field { margin-top: 26px; height: 64px; border-radius: 14px; background: var(--dark-2); display: flex; align-items: center; gap: 14px; padding: 0 22px; font-family: var(--mono); font-size: 22px; color: #fff; }
+  .field .ph { color: rgba(255,255,255,0.3); }
+  .caret { width: 2px; height: 28px; background: var(--accent-soft); }
+  .agents { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  .ag { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px 10px 12px; border-radius: 11px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); font-size: 17px; font-weight: 500; }
+  .ag img { width: 20px; height: 20px; }
+  .ag img.mono { filter: invert(1); }
+  #add .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 28px; }
+  #add .cmd { font-family: var(--mono); font-size: 14px; color: rgba(255,255,255,0.4); }
+
+  /* Pillars */
+  #pil-h { position: absolute; left: 0; right: 0; top: 230px; text-align: center; }
+  #pils { position: absolute; left: 0; right: 0; top: 440px; display: flex; justify-content: center; gap: 24px; }
+  .pil { width: 500px; padding: 36px 36px 34px; background: #fff; border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 1px 2px rgba(14,14,20,0.04), 0 20px 50px rgba(14,14,20,0.07); }
+  .pil .k { font-family: var(--mono); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .pil .k i { width: 10px; height: 10px; border-radius: 50%; background: var(--green); opacity: 0; }
+  .pil h4 { font-size: 34px; letter-spacing: -0.035em; font-weight: 600; margin-top: 18px; line-height: 1.1; }
+  .pil p { font-size: 19px; color: var(--gray); margin-top: 14px; line-height: 1.45; letter-spacing: -0.01em; }
+
+  /* Proof */
+  #proof { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; gap: 120px; }
+  .stat { width: 440px; }
+  .stat .n { height: 150px; font-size: 148px; font-weight: 600; letter-spacing: -0.06em; line-height: 1; display: flex; align-items: flex-end; gap: 10px; }
+  .stat .n .sm { font-size: 64px; color: var(--accent); letter-spacing: -0.02em; align-self: flex-start; margin-top: 14px; line-height: 1; }
+  .stat .c { font-size: 22px; color: var(--gray); margin-top: 22px; letter-spacing: -0.01em; line-height: 1.4; }
+  .stat .c b { color: var(--ink); font-weight: 600; }
+
+  /* Close */
+  #s-close { background: #04110C; }
+  #mesh { position: absolute; inset: -10%; background:
+      radial-gradient(ellipse 40% 50% at 20% 30%, rgba(16,185,129,0.85) 0%, rgba(16,185,129,0) 60%),
+      radial-gradient(ellipse 45% 55% at 80% 75%, rgba(110,231,183,0.55) 0%, rgba(110,231,183,0) 60%),
+      radial-gradient(ellipse 60% 50% at 55% 20%, rgba(6,78,59,0.95) 0%, rgba(6,78,59,0) 65%),
+      linear-gradient(160deg, #04110C 0%, #073B2C 50%, #04110C 100%); }
+  #grain { position: absolute; inset: 0; opacity: 0.16; mix-blend-mode: soft-light; }
+  #s-close .center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 30px; color: #fff; }
+  #s-close .tag { font-size: 34px; color: rgba(255,255,255,0.88); letter-spacing: -0.015em; margin-top: 18px; }
+  #s-close .url { font-family: var(--mono); font-size: 22px; letter-spacing: 0.06em; color: rgba(255,255,255,0.6); }
+  #hud { position: fixed; left: 16px; bottom: 12px; font: 12px/1 monospace; color: #000; opacity: 0.5; display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grid"></div>
+  <div id="sheen"></div>
+
+  <!-- INTRO: agents and their skills land on the grid -->
+  <section class="scene" id="s-intro">
+    <div class="chip pop" id="c1" style="left:220px;top:190px"><img src="assets/icons/claudecode-color.svg">Claude Code</div>
+    <div class="sig pop" id="g1" style="left:1100px;top:160px"><i></i><b>anthropics/skills</b> · 4 skills</div>
+    <div class="chip pop" id="c2" style="left:540px;top:410px"><img src="assets/icons/codex-color.svg">Codex</div>
+    <div class="sig pop" id="g2" style="left:1290px;top:410px"><i class="a"></i><b>~/.claude/skills</b> · 21 skills</div>
+    <div class="chip pop" id="c3" style="left:280px;top:640px"><img src="assets/icons/cursor.svg">Cursor</div>
+    <div class="sig pop" id="g3" style="left:930px;top:640px"><i></i><b>mcp__github</b> · 104 calls</div>
+    <div class="chip pop" id="c4" style="left:820px;top:290px"><img src="assets/icons/opencode.svg">OpenCode</div>
+    <div class="sig pop" id="g4" style="left:1400px;top:790px"><i class="r"></i><b>skill-creator</b> · never used</div>
+    <div class="chip pop" id="c5" style="left:600px;top:860px"><img src="assets/icons/windsurf.svg">Windsurf</div>
+    <div class="chip pop" id="c6" style="left:1150px;top:880px"><img src="assets/icons/geminicli-color.svg">Gemini CLI</div>
+    <div class="sig pop" id="g5" style="left:60px;top:430px"><i class="a"></i><b>obra/superpowers</b> · 3 skills</div>
+  </section>
+
+  <!-- HEADLINE -->
+  <section class="scene" id="s-h1">
+    <h1 class="h1" style="position:absolute;left:160px;top:50%;transform:translateY(-50%);white-space:nowrap;">
+      <span class="pop" id="h1a">Every agent.</span> <span class="pop" id="h1b">Every skill.</span>
+    </h1>
+  </section>
+
+  <!-- LOGO -->
+  <section class="scene" id="s-logo">
+    <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:56px;">
+      <div class="wordmark pop" id="wordmark">OpenToolbelt</div>
+      <p class="sub pop" id="logosub" style="max-width:none;font-size:30px;text-align:center;">See what your coding agents carry, and what it costs.</p>
+    </div>
+  </section>
+
+  <!-- 01 COST -->
+  <section class="scene" id="s-cost">
+    <div class="left">
+      <span class="eyebrow pop" id="ke">01 · Context cost</span>
+      <h2 class="h2"><span class="w pop" id="kh1">Skills cost tokens</span><br><span class="w pop" id="kh2">before you type.</span></h2>
+      <p class="sub pop" id="ks">Every session lists each installed skill so the model can pick one. Most of them never run.</p>
+    </div>
+    <div class="dcard pop" id="cost">
+      <div class="row"><span class="label">Context per session</span><span class="agent"><img src="assets/icons/claudecode-color.svg">Claude Code</span></div>
+      <div class="big pop" id="costnum"><span id="costval">0</span><small>tokens</small></div>
+      <div class="hr"></div>
+      <div class="facts">
+        <div class="fact pop" id="f1"><i class="r"></i><div><b>7.7k tokens</b> <span>from skills never used</span></div></div>
+        <div class="fact pop" id="f2"><i class="a"></i><div><b>53 skills</b> <span>loaded, never called</span></div></div>
+        <div class="fact pop" id="f3"><i></i><div><b>5 skills</b> <span>doing the actual work</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 SUGGESTIONS -->
+  <section class="scene" id="s-sugg">
+    <div class="left">
+      <span class="eyebrow pop" id="se">02 · Suggestions</span>
+      <h2 class="h2"><span class="w pop" id="sh1">Trim the weight</span><br><span class="w pop" id="sh2">in one click.</span></h2>
+      <p class="sub pop" id="ss">Each suggestion comes with one button. Prune what never runs, spread what works.</p>
+    </div>
+    <div class="dcard pop" id="sugg">
+      <div class="head"><span class="label">Suggestions</span><span class="ctx">Context per session<b id="ctxval">8,500</b></span></div>
+      <div class="srow pop" id="r1"><img src="assets/icons/claudecode-color.svg"><div class="t"><b>Trim 53 unused skills</b><span>from Claude Code</span></div><span class="imp">−7.7k</span><span class="btn" id="trimbtn"><i class="st"></i><span id="trimtxt">Review</span></span></div>
+      <div class="srow pop" id="r2"><img src="assets/icons/cursor.svg" style="filter:invert(1)"><div class="t"><b>Use anatomy in Cursor</b><span>you already use it in Claude Code</span></div><span class="btn">Install</span></div>
+      <div class="srow pop" id="r3"><span class="ex">!</span><div class="t"><b>find-skills points at nothing</b><span>in the lockfile, not installed</span></div><span class="btn">Clean up</span></div>
+    </div>
+  </section>
+
+  <!-- 03 ADD -->
+  <section class="scene" id="s-add">
+    <div class="left">
+      <span class="eyebrow pop" id="ae">03 · Add skills</span>
+      <h2 class="h2"><span class="w pop" id="ah1">Any repo.</span><br><span class="w pop" id="ah2">Every agent.</span></h2>
+      <p class="sub pop" id="as">Paste a source, pick your agents. It runs npx skills for you.</p>
+    </div>
+    <div class="dcard pop" id="add">
+      <span class="label">Add skills</span>
+      <h3>Install from a repo</h3>
+      <div class="field pop" id="field"><span id="typed"></span><span class="caret"></span></div>
+      <div class="agents">
+        <span class="ag pop" id="a1"><img src="assets/icons/claudecode-color.svg">Claude Code</span>
+        <span class="ag pop" id="a2"><img src="assets/icons/codex-color.svg">Codex</span>
+        <span class="ag pop" id="a3"><img class="mono" src="assets/icons/cursor.svg">Cursor</span>
+        <span class="ag pop" id="a4"><img class="mono" src="assets/icons/opencode.svg">OpenCode</span>
+      </div>
+      <div class="foot"><span class="cmd">npx skills add … --global</span><span class="btn primary" id="instbtn"><i class="st"></i><span id="insttxt">Install</span></span></div>
+    </div>
+  </section>
+
+  <!-- PILLARS -->
+  <section class="scene" id="s-pil">
+    <div id="pil-h"><h2 class="h2 pop" id="ph" style="font-size:84px;">Six agents. One honest list.</h2></div>
+    <div id="pils">
+      <div class="pil pop" id="p1"><div class="k">Skills <i></i></div><h4>Where each one came from.</h4><p>npx skills repos, plugins, built-ins and the folders you made by hand.</p></div>
+      <div class="pil pop" id="p2"><div class="k">MCP servers <i></i></div><h4>Every config, one view.</h4><p>Claude Code, Codex, Cursor, OpenCode, Windsurf and Gemini CLI.</p></div>
+      <div class="pil pop" id="p3"><div class="k">Usage <i></i></div><h4>Read from local logs.</h4><p>What actually ran, counted from the session logs on your Mac.</p></div>
+    </div>
+  </section>
+
+  <!-- PROOF -->
+  <section class="scene" id="s-proof">
+    <div id="proof">
+      <div class="stat pop" id="st1"><div class="n"><span id="num1">0</span></div><div class="c"><b>Coding agents</b> in one menu bar app.</div></div>
+      <div class="stat pop" id="st2"><div class="n"><span id="num2">0</span><span class="sm">%</span></div><div class="c"><b>Local.</b> No account, no telemetry. Nothing leaves your Mac.</div></div>
+      <div class="stat pop" id="st3"><div class="n"><span style="font-size:132px;letter-spacing:-0.055em;">MIT</span></div><div class="c"><b>Free and open source.</b> Fork it, read it, ship it.</div></div>
+    </div>
+  </section>
+
+  <!-- CLOSE -->
+  <section class="scene" id="s-close">
+    <div id="mesh"></div>
+    <svg id="grain" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><filter id="nz"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 1 0"/></filter><rect width="100%" height="100%" filter="url(#nz)"/></svg>
+    <div class="center">
+      <div class="wordmark pop" id="wordmark2" style="color:#fff;">OpenToolbelt</div>
+      <p class="tag pop" id="tag">Know what your agents carry.</p>
+      <p class="url pop" id="url">github.com/apurv-1/OpenToolbelt</p>
+    </div>
+  </section>
+
+  <div id="cursor"><div class="dot" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>
+</div>
+<div id="hud"></div>
+<audio id="track" src="out/track.wav" preload="auto"></audio>
+
+<script src="assets/gsap.min.js"></script>
+<script>
+  const FPS = 60, DURATION = 30, BEAT = 0.5;
+  const EVENTS = []; // {t, type} shared with the audio generator
+  const ev = (t, type, extra) => EVENTS.push(Object.assign({ t: +t.toFixed(4), type }, extra || {}));
+
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const rectOf = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+
+  // Measure everything before any transform is applied, including the wider
+  // "done" states of buttons, so the dots land on the final shape.
+  const R = {};
+  document.querySelectorAll('[id]').forEach((el) => { R[el.id] = rectOf(el); });
+  const measureState = (btn, txt, label, key) => {
+    const b = $(btn), t = $(txt), was = t.textContent;
+    b.classList.add('done'); t.textContent = label; R[key] = rectOf(b);
+    b.classList.remove('done'); t.textContent = was;
+  };
+  measureState('#trimbtn', '#trimtxt', 'Trimmed', 'trimDone');
+  measureState('#instbtn', '#insttxt', 'Installed', 'instDone');
+
+  const dots = [0, 1, 2, 3].map((i) => $('#d' + i));
+  gsap.set(dots, { left: 960, top: 540, opacity: 0 });
+
+  // ---- primitives (same rhythm language as the reference) ----
+  // Cuts stay on the beat, but dissolve through a quick blur instead of snapping:
+  // the old scene starts leaving just before the beat, the new one lands on it.
+  // Each scene also drifts forward slowly while it is on screen.
+  const SCENE_END = { '#s-intro': 4, '#s-h1': 6, '#s-logo': 8, '#s-cost': 12, '#s-sugg': 16, '#s-add': 20, '#s-pil': 24, '#s-proof': 26.5, '#s-close': 30 };
+  const cut = (hideSel, showSel, t) => {
+    if (hideSel) {
+      tl.to(hideSel, { opacity: 0, filter: 'blur(10px)', duration: 0.16, ease: 'power2.in' }, t - 0.12);
+      tl.set(hideSel, { visibility: 'hidden' }, t + 0.05);
+    }
+    tl.set(showSel, { visibility: 'visible' }, t - 0.06);
+    tl.fromTo(showSel, { opacity: 0, filter: 'blur(10px)' }, { opacity: 1, filter: 'blur(0px)', duration: 0.32, ease: 'expo.out' }, t - 0.06);
+    tl.fromTo(showSel, { scale: 1 }, { scale: 1.03, duration: SCENE_END[showSel] - t, ease: 'none' }, t);
+    ev(t, 'cut');
+  };
+  const pop = (sel, t, o = {}) => {
+    const el = typeof sel === 'string' ? $(sel) : sel;
+    tl.fromTo(el, { opacity: 0, scale: o.from ?? 0.9, y: o.y ?? 10, transformOrigin: o.origin || '50% 50%' },
+      { opacity: 1, scale: 1, y: 0, duration: o.dur ?? 0.3, ease: 'expo.out' }, t);
+    if (!o.silent) ev(t, o.type || 'pop');
+    return el;
+  };
+  const bracket = (target, t, o = {}) => {
+    const r = typeof target === 'string' ? R[target] : target;
+    const pad = o.pad ?? 22;
+    const corners = [[r.x - pad, r.y - pad], [r.x + r.w + pad, r.y - pad], [r.x - pad, r.y + r.h + pad], [r.x + r.w + pad, r.y + r.h + pad]];
+    dots.forEach((d, i) => {
+      tl.to(d, { left: corners[i][0], top: corners[i][1], duration: o.dur ?? 0.22, ease: 'expo.out' }, t);
+      tl.fromTo(d, { scale: 1.6 }, { scale: 1, duration: 0.3, ease: 'expo.out' }, t);
+    });
+    if (o.show !== false) tl.set(dots, { opacity: 1 }, t);
+    if (o.white !== undefined) tl.set(dots, { className: o.white ? 'dot white' : 'dot' }, t);
+  };
+  const hideDots = (t) => tl.set(dots, { opacity: 0 }, t);
+  const dash = (t, w) => { tl.to(dots, { width: w, marginLeft: -w / 2, duration: 0.18, ease: 'expo.out' }, t); tl.to(dots, { width: 14, marginLeft: -7, duration: 0.2, ease: 'expo.inOut' }, t + 0.3); ev(t, 'tick'); };
+  const beat = (sel, t, o = {}) => { bracket(typeof sel === 'string' ? sel.slice(1) : sel, t, o); return pop(sel, t, o); };
+  const union = (...ids) => { const rs = ids.map((i) => R[i]); const x = Math.min(...rs.map((r) => r.x)), y = Math.min(...rs.map((r) => r.y)); return { x, y, w: Math.max(...rs.map((r) => r.x + r.w)) - x, h: Math.max(...rs.map((r) => r.y + r.h)) - y }; };
+  const count = (sel, to, t, dur, fmt) => { const o = { v: 0 }; tl.to(o, { v: to, duration: dur, ease: 'expo.out', onUpdate() { $(sel).textContent = fmt(o.v); } }, t); };
+  const thousands = (v) => Math.round(v).toLocaleString('en-US');
+
+  // ---- INTRO · bars 0-1 (0.0 – 4.0) ----
+  tl.fromTo('#grid', { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0);
+  cut(null, '#s-intro', 0);
+  const intro = ['#c1', '#g1', '#c2', '#g2', '#c3', '#g3', '#c4', '#g4', '#c5', '#c6', '#g5'];
+  const introT = [0.5, 1.0, 1.5, 2.0, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 3.875];
+  intro.forEach((s, i) => beat(s, introT[i], { pad: 16 }));
+  tl.to(intro.join(','), { opacity: 0.18, duration: 0.2 }, 3.9);
+
+  // ---- HEADLINE · bar 2 (4.0 – 6.0) ----
+  cut('#s-intro', '#s-h1', 4.0);
+  beat('#h1a', 4.0, { pad: 30, from: 0.96, y: 0, type: 'hit' });
+  pop('#h1b', 4.5, { from: 0.96, y: 0, type: 'hit' });
+  bracket(union('h1a', 'h1b'), 4.5, { pad: 30 });
+
+  // ---- LOGO · bar 3 (6.0 – 8.0) ----
+  cut('#s-h1', '#s-logo', 6.0);
+  beat('#wordmark', 6.0, { pad: 34, from: 0.97, y: 0, type: 'hit' });
+  pop('#logosub', 6.5, { from: 0.98 });
+
+  // ---- 01 COST · bars 4-5 (8.0 – 12.0) ----
+  cut('#s-logo', '#s-cost', 8.0);
+  pop('#ke', 8.0, { silent: true });
+  pop('#kh1', 8.0, { from: 0.97, y: 0, type: 'hit' });
+  pop('#kh2', 8.5, { from: 0.97, y: 0, type: 'hit' });
+  pop('#ks', 9.0, { from: 0.98 });
+  beat('#cost', 8.0, { pad: 24, from: 0.96, y: 24, dur: 0.4 });
+  beat('#costnum', 9.0, { pad: 14, from: 0.9, y: 0 });
+  count('#costval', 8500, 9.0, 1.2, thousands);
+  [9.25, 9.5, 9.75, 10.0].forEach((t) => ev(t, 'tick'));
+  beat('#f1', 10.5, { pad: 10, from: 0.9, y: 0 });
+  beat('#f2', 10.75, { pad: 10, from: 0.9, y: 0 });
+  beat('#f3', 11.0, { pad: 10, from: 0.9, y: 0, type: 'hit' });
+  bracket(union('f1', 'f2', 'f3'), 11.5, { pad: 14 });
+
+  // ---- 02 SUGGESTIONS · bars 6-7 (12.0 – 16.0) ----
+  cut('#s-cost', '#s-sugg', 12.0);
+  pop('#se', 12.0, { silent: true });
+  pop('#sh1', 12.0, { from: 0.97, y: 0, type: 'hit' });
+  pop('#sh2', 12.5, { from: 0.97, y: 0, type: 'hit' });
+  pop('#ss', 13.0, { from: 0.98 });
+  beat('#sugg', 12.0, { pad: 24, from: 0.96, y: 24, dur: 0.4 });
+  beat('#r1', 12.5, { pad: 8, from: 0.95, y: 8 });
+  beat('#r2', 12.75, { pad: 8, from: 0.95, y: 8 });
+  beat('#r3', 13.0, { pad: 8, from: 0.95, y: 8 });
+  bracket('trimbtn', 13.5, { pad: 10 });
+  tl.set('#trimbtn', { className: 'btn done' }, 14.0);
+  tl.set('#trimtxt', { textContent: 'Trimmed' }, 14.0); ev(14.0, 'hit');
+  bracket('trimDone', 14.0, { pad: 10 });
+  const ctx = { v: 8500 };
+  tl.to(ctx, { v: 800, duration: 1.0, ease: 'expo.out', onUpdate() { $('#ctxval').textContent = thousands(ctx.v); } }, 14.5);
+  bracket('ctxval', 14.5, { pad: 12 });
+  [14.75, 15.0, 15.25].forEach((t) => ev(t, 'tick'));
+
+  // ---- 03 ADD · bars 8-9 (16.0 – 20.0) ----
+  cut('#s-sugg', '#s-add', 16.0);
+  pop('#ae', 16.0, { silent: true });
+  pop('#ah1', 16.0, { from: 0.97, y: 0, type: 'hit' });
+  pop('#ah2', 16.5, { from: 0.97, y: 0, type: 'hit' });
+  pop('#as', 17.0, { from: 0.98 });
+  beat('#add', 16.0, { pad: 24, from: 0.96, y: 24, dur: 0.4 });
+  beat('#field', 16.5, { pad: 10, from: 0.97, y: 0 });
+  const repo = 'vercel-labs/agent-skills';
+  [...repo].forEach((_, i) => {
+    const t = 16.75 + i * (1.0 / repo.length);
+    tl.set('#typed', { textContent: repo.slice(0, i + 1) }, t);
+    if (i % 3 === 0) ev(t, 'key');
+  });
+  beat('#a1', 18.0, { pad: 8, from: 0.8 });
+  beat('#a2', 18.25, { pad: 8, from: 0.8 });
+  beat('#a3', 18.5, { pad: 8, from: 0.8 });
+  beat('#a4', 18.75, { pad: 8, from: 0.8 });
+  bracket('instbtn', 19.0, { pad: 10 });
+  tl.set('#instbtn', { className: 'btn primary done' }, 19.5);
+  tl.set('#insttxt', { textContent: 'Installed' }, 19.5); ev(19.5, 'hit');
+  bracket('instDone', 19.5, { pad: 10 });
+
+  // ---- PILLARS · bars 10-11 (20.0 – 24.0) ----
+  cut('#s-add', '#s-pil', 20.0);
+  beat('#ph', 20.0, { pad: 28, from: 0.97, y: 0, type: 'hit' });
+  beat('#p1', 21.0, { pad: 18, from: 0.94, y: 20 });
+  beat('#p2', 21.5, { pad: 18, from: 0.94, y: 20 });
+  beat('#p3', 22.0, { pad: 18, from: 0.94, y: 20 });
+  bracket(union('p1', 'p2', 'p3'), 22.5, { pad: 28 });
+  ['#p1 .k i', '#p2 .k i', '#p3 .k i'].forEach((s, i) => { tl.fromTo(s, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.25, ease: 'expo.out' }, 23.0 + i * 0.25); ev(23.0 + i * 0.25, 'tick'); });
+
+  // ---- PROOF · bar 12 + half (24.0 – 26.5) ----
+  cut('#s-pil', '#s-proof', 24.0);
+  beat('#st1', 24.0, { pad: 22, from: 0.95, y: 10, type: 'hit' });
+  beat('#st2', 24.5, { pad: 22, from: 0.95, y: 10, type: 'hit' });
+  beat('#st3', 25.0, { pad: 22, from: 0.95, y: 10, type: 'hit' });
+  count('#num1', 6, 24.0, 0.6, (v) => Math.round(v));
+  count('#num2', 100, 24.5, 0.9, (v) => Math.round(v));
+  bracket(union('st1', 'st2', 'st3'), 25.5, { pad: 40 });
+  bracket({ x: 80, y: 80, w: 1760, h: 920 }, 26.0, { pad: 0 }); dash(26.0, 56);
+  bracket({ x: 40, y: 40, w: 1840, h: 1000 }, 26.25, { pad: 0 }); dash(26.25, 90);
+
+  // ---- CLOSE · (26.5 – 30.0) ----
+  cut('#s-proof', '#s-close', 26.5); ev(26.5, 'impact');
+  tl.set('#grid', { opacity: 0 }, 26.5);
+  tl.fromTo('#mesh', { scale: 1.12, rotate: -2 }, { scale: 1, rotate: 0, duration: 3.5, ease: 'power2.out' }, 26.5);
+  bracket('wordmark2', 26.5, { pad: 34, white: true });
+  pop('#wordmark2', 26.5, { from: 0.97, y: 0, silent: true });
+  pop('#tag', 27.0, { from: 0.98, type: 'hit' });
+  pop('#url', 27.5, { from: 0.98 });
+  hideDots(28.0); ev(28.0, 'stop');
+  tl.to('#stage', { opacity: 1, duration: 0.01 }, 29.99);
+
+  // ---- Render API ----
+  window.FPS = FPS; window.DURATION = DURATION; window.EVENTS = EVENTS;
+  window.seek = (t) => { tl.pause(); tl.seek(Math.min(t, DURATION - 0.001), false); return true; };
+  window.ready = document.fonts.ready.then(() => { window.seek(0); return true; });
+
+  if (!navigator.webdriver) {
+    const hud = $('#hud'); hud.style.display = 'block';
+    const audio = $('#track');
+    gsap.ticker.add(() => { hud.textContent = tl.time().toFixed(2) + 's  (space: play/pause, ←: restart)'; });
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); if (tl.paused()) { tl.play(); audio.currentTime = tl.time(); audio.play().catch(() => {}); } else { tl.pause(); audio.pause(); } }
+      if (e.code === 'ArrowLeft') { tl.pause(0); audio.pause(); audio.currentTime = 0; }
+    });
+    window.ready.then(() => tl.pause(0));
+  }
+</script>
+</body>
+</html>

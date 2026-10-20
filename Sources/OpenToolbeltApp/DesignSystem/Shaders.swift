@@ -176,8 +176,6 @@ struct ShaderView: View {
     /// Radar only: scope center as a fraction of the view, and radius in points.
     var scopeCenter = UnitPoint.center
     var scopeRadius: CGFloat = 60
-    /// A fixed time in seconds, for rendering exact frames offscreen. nil animates live.
-    var time: Double?
 
     @Environment(\.displayScale) private var scale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -185,8 +183,8 @@ struct ShaderView: View {
     var body: some View {
         GeometryReader { geo in
             TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-                let now = time ?? (reduceMotion ? 1.4 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
-                if let image = frame(size: geo.size, time: now) {
+                let time = reduceMotion ? 1.4 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+                if let image = frame(size: geo.size, time: time) {
                     Image(decorative: image, scale: scale).resizable()
                 } else {
                     Color(nsColor: NSColor(hex: 0x0D1514))

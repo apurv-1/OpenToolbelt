@@ -49,6 +49,9 @@ enum AgentIcons {
         guard let url = Bundle.module.url(forResource: name, withExtension: "svg", subdirectory: "AgentIcons"),
               let image = NSImage(contentsOf: url) else { return nil }
         image.isTemplate = !color
+        // The SVGs declare 24pt. Draw them from a large size and scale down,
+        // so they stay sharp in the window, in 2x renders and in video frames.
+        image.size = NSSize(width: 512, height: 512)
         cache[name] = image
         return image
     }
