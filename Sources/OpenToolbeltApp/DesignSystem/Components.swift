@@ -1,3 +1,4 @@
+import OpenToolbeltCore
 import SwiftUI
 
 struct Hairline: View {
@@ -122,5 +123,47 @@ struct MenuRow<Leading: View>: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
+    }
+}
+
+/// The leading mark on a row: a monogram tile for a skill, a plug for an MCP
+/// server. Skills have no icon of their own, so the tile's color comes from
+/// a hash of the name and stays stable across launches.
+struct ItemTile: View {
+    var kind: ItemKind
+    var name: String
+    var size: CGFloat = 18
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+        Group {
+            switch kind {
+            case .skill:
+                Text(initial)
+                    .font(.system(size: size * 0.56, weight: .semibold, design: .rounded))
+                    .foregroundStyle(hue)
+                    .frame(width: size, height: size)
+                    .background(hue.opacity(0.16), in: shape)
+            case .mcpServer:
+                Image(systemName: "powerplug.fill")
+                    .font(.system(size: size * 0.5, weight: .medium))
+                    .foregroundStyle(Theme.Palette.textSecondary)
+                    .frame(width: size, height: size)
+                    .background(Theme.Palette.raised, in: shape)
+                    .overlay(shape.strokeBorder(Theme.Palette.hairline, lineWidth: 1))
+            }
+        }
+        .help(kind == .skill ? "Skill" : "MCP server")
+    }
+
+    private var initial: String {
+        let letters = name.split(separator: ":").last.map(String.init) ?? name
+        return String(letters.first { $0.isLetter || $0.isNumber } ?? "?").uppercased()
+    }
+
+    private var hue: Color {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in name.utf8 { hash = (hash ^ UInt64(byte)) &* 0x100000001b3 }
+        return Color(hue: Double(hash % 360) / 360, saturation: 0.55, brightness: 0.72)
     }
 }

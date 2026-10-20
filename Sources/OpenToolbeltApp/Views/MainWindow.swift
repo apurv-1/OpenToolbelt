@@ -13,8 +13,7 @@ struct MainWindow: View {
             Group {
                 switch store.page {
                 case .overview: OverviewPage()
-                case .skills(let filter): SkillsPage(filter: filter)
-                case .mcpServers: MCPServersPage()
+                case .library(let filter): LibraryPage(filter: filter)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -47,9 +46,10 @@ struct Sidebar: View {
             List(selection: $store.page) {
                 Section {
                     item("Overview", symbol: "gauge.with.dots.needle.33percent", count: nil, page: .overview)
-                    item("All skills", symbol: "square.stack", count: store.rows.count, page: .skills(.all))
-                    item("External", symbol: "shippingbox", count: store.rows(.external).count, page: .skills(.external))
-                    item("Never used", symbol: "moon", count: store.rows(.idle).count, page: .skills(.idle))
+                    item("Everything", symbol: "square.stack", count: store.rows.count, page: .library(.all))
+                    item("Skills", symbol: "doc.text", count: store.rows(.skills).count, page: .library(.skills))
+                    item("MCP servers", symbol: "powerplug", count: store.rows(.mcpServers).count, page: .library(.mcpServers))
+                    item("Never used", symbol: "moon", count: store.rows(.idle).count, page: .library(.idle))
                 }
                 Section("Agents") {
                     ForEach(store.columns) { column in
@@ -63,11 +63,8 @@ struct Sidebar: View {
                                 .font(Theme.Font.number)
                                 .foregroundStyle(Theme.Palette.textTertiary)
                         }
-                        .tag(Page.skills(.agent(column.agent)))
+                        .tag(Page.library(.agent(column.agent)))
                     }
-                }
-                Section("Tools") {
-                    item("MCP servers", symbol: "point.3.connected.trianglepath.dotted", count: store.mcpServers.count, page: .mcpServers)
                 }
             }
             .listStyle(.sidebar)

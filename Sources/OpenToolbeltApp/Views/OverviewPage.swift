@@ -78,17 +78,18 @@ struct MetricStrip: View {
 
     var body: some View {
         let context = contextAgent
-        let servers = store.mcpServers
+        let servers = store.trackedServers
+        let skills = store.rows(.skills).filter(\.enabled)
         HStack(spacing: 0) {
             metric("Context per session", value: context.map { Format.tokens($0.cost.total) } ?? "–",
                    detail: context.map { "\(Format.tokens($0.cost.idle)) from unused skills" } ?? "No usage logs yet",
                    detailTone: (context?.cost.idle ?? 0) > 0 ? Theme.Palette.idle : Theme.Palette.textTertiary,
                    agent: context?.agent)
             divider
-            metric("Skills in use", value: "\(store.rows.filter { $0.totalUses > 0 }.count) / \(store.rows.filter(\.enabled).count)",
+            metric("Skills in use", value: "\(skills.filter { $0.totalUses > 0 }.count) / \(skills.count)",
                    detail: "enabled skills used at least once")
             divider
-            metric("MCP servers in use", value: "\(servers.filter { $0.item.uses > 0 }.count) / \(servers.count)",
+            metric("MCP servers in use", value: "\(servers.filter { $0.totalUses > 0 }.count) / \(servers.count)",
                    detail: "Claude Code and Codex")
             divider
             metric("Sessions", value: "\(store.sessions)", detail: "since \(Format.day(store.firstSeen))")
@@ -100,7 +101,7 @@ struct MetricStrip: View {
 
     /// The tracked agent that carries the most skill context.
     private var contextAgent: (agent: Agent, cost: (total: Int, idle: Int))? {
-        guard let matrix = store.result?.skills else { return nil }
+        guard let matrix = store.result?.library else { return nil }
         return store.detectedAgents.filter(\.tracksUsage)
             .map { ($0, matrix.contextTokens($0)) }
             .max { $0.1.total < $1.1.total }
@@ -268,9 +269,9 @@ struct SuggestionRow: View {
     private func act() {
         switch insight.kind {
         case .pruneIdle(let agent, _, _):
-            store.page = .skills(.idleIn(agent))
+            store.page = .library(.idleIn(agent))
         case .idleServers:
-            store.page = .mcpServers
+            store.page = .library(.mcpServers)
         case .spread(let skill, let source, let agents):
             store.cli.run(SkillsCommand.add(source: source, skills: [skill], agents: agents)) { store.refresh() }
             store.showingAddSkill = true
@@ -287,25 +288,23 @@ struct MostUsedPanel: View {
     @Environment(Store.self) private var store
 
     var body: some View {
-        let skills = store.rows.filter { $0.totalUses > 0 }.sorted { $0.totalUses > $1.totalUses }
-            .map { (name: $0.invocation, kind: "skill", uses: $0.totalUses, agents: $0.installedAgents) }
-        let servers = store.mcpServers.filter { $0.item.uses > 0 }
-            .map { (name: $0.item.item.displayName, kind: "MCP", uses: $0.item.uses, agents: [$0.agent]) }
-        let top = (skills + servers).sorted { $0.uses > $1.uses }.prefix(8)
-        let peak = Double(top.first?.uses ?? 1)
+        let top = store.rows.filter { $0.totalUses > 0 }.sorted { $0.totalUses > $1.totalUses }.prefix(8)
+        let peak = Double(top.first?.totalUses ?? 1)
         DashboardPanel(title: "Most used", detail: "skills and MCP servers") {
             VStack(spacing: 0) {
-                ForEach(Array(top.enumerated()), id: \.offset) { _, entry in
+                ForEach(Array(top)) { entry in
                     HStack(spacing: Theme.Space.sm) {
+                        ItemTile(kind: entry.kind, name: entry.name)
                         Text(entry.name).font(Theme.Font.bodyMedium).foregroundStyle(Theme.Palette.text).lineLimit(1)
-                        Text(entry.kind).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
                         Spacer()
-                        HStack(spacing: 4) { ForEach(entry.agents, id: \.self) { AgentIcon(agent: $0, style: .mono, size: 11).opacity(0.6) } }
+                        HStack(spacing: 4) {
+                            ForEach(entry.installedAgents, id: \.self) { AgentIcon(agent: $0, style: .mono, size: 11).opacity(0.6) }
+                        }
                         Capsule().fill(Theme.Palette.raised).frame(width: 120, height: 4)
                             .overlay(alignment: .leading) {
-                                Capsule().fill(Theme.Palette.accent).frame(width: max(3, 120 * Double(entry.uses) / peak), height: 4)
+                                Capsule().fill(Theme.Palette.accent).frame(width: max(3, 120 * Double(entry.totalUses) / peak), height: 4)
                             }
-                        Text("\(entry.uses)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textSecondary)
+                        Text("\(entry.totalUses)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textSecondary)
                             .frame(width: 40, alignment: .trailing)
                     }
                     .padding(.horizontal, Theme.Space.md)

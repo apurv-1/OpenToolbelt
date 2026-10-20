@@ -16,7 +16,7 @@ struct PopoverView: View {
                     .clipShape(.circle)
                     .overlay(Circle().strokeBorder(Theme.Palette.hairline, lineWidth: 1))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(store.result == nil ? "Scanning your agents" : "\(used) of \(store.rows.count) skills used")
+                    Text(store.result == nil ? "Scanning your agents" : "\(used) of \(store.rows.count) tools used")
                         .font(Theme.Font.bodyMedium).foregroundStyle(Theme.Palette.text)
                     Text(store.isScanning ? "Reading local logs…" : "\(store.sessions) sessions · scanned \(Format.ago(store.lastScan))")
                         .font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
@@ -32,17 +32,17 @@ struct PopoverView: View {
                 MenuRow(title: column.agent.displayName, detail: "\(store.rows(.agent(column.agent)).count)") {
                     AgentIcon(agent: column.agent, size: 15)
                 } action: {
-                    open(.skills(.agent(column.agent)))
+                    open(.library(.agent(column.agent)))
                 }
             }
             Hairline().padding(.vertical, 6)
             MenuRow(title: "Never used", detail: "\(store.rows(.idle).count)") {
                 StatusDot(state: .idle)
-            } action: { open(.skills(.idle)) }
+            } action: { open(.library(.idle)) }
             MenuRow(title: "Add skills…", shortcut: "⌘N") {
                 Image(systemName: "plus").foregroundStyle(Theme.Palette.textSecondary)
             } action: {
-                open(.skills(.all))
+                open(.library(.all))
                 store.showingAddSkill = true
             }
             .keyboardShortcut("n")

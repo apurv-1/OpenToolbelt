@@ -1,10 +1,10 @@
 import OpenToolbeltCore
 import SwiftUI
 
-/// The skill x agent matrix: one row per skill, one column per agent.
-struct SkillsPage: View {
+/// The library: one row per skill or MCP server, one column per agent.
+struct LibraryPage: View {
     @Environment(Store.self) private var store
-    var filter: SkillFilter
+    var filter: LibraryFilter
     @State private var query = ""
 
     var body: some View {
@@ -13,13 +13,13 @@ struct SkillsPage: View {
             MatrixColumnHeader()
             Hairline()
             ScrollView {
-                MatrixSections(sections: SkillSection.group(rows), expandAll: !query.isEmpty)
+                MatrixSections(sections: LibrarySection.group(rows), expandAll: !query.isEmpty)
                     .padding(.vertical, Theme.Space.xs)
             }
         }
         .navigationTitle(title)
-        .navigationSubtitle("\(rows.count) skills")
-        .searchable(text: $query, placement: .toolbar, prompt: "Search skills")
+        .navigationSubtitle(subtitle(rows))
+        .searchable(text: $query, placement: .toolbar, prompt: "Search")
         .toolbar {
             ToolbarItem { LegendButton() }
             ToolbarItem(placement: .primaryAction) {
@@ -32,15 +32,22 @@ struct SkillsPage: View {
 
     private var title: String {
         switch filter {
-        case .all: "All skills"
-        case .external: "External skills"
+        case .all: "Everything"
+        case .skills: "Skills"
+        case .mcpServers: "MCP servers"
         case .idle: "Never used"
         case .agent(let agent): agent.displayName
         case .idleIn(let agent): "Unused in \(agent.displayName)"
         }
     }
 
-    private func matches(_ row: SkillRow) -> Bool {
+    private func subtitle(_ rows: [LibraryRow]) -> String {
+        let skills = rows.filter { $0.kind == .skill }.count, servers = rows.count - skills
+        return [skills > 0 ? "\(skills) skills" : nil, servers > 0 ? "\(servers) MCP servers" : nil]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private func matches(_ row: LibraryRow) -> Bool {
         guard !query.isEmpty else { return true }
         if row.name.localizedCaseInsensitiveContains(query) || (row.summary?.localizedCaseInsensitiveContains(query) ?? false) { return true }
         if case .external(let source, _) = row.origin { return source.localizedCaseInsensitiveContains(query) }
@@ -54,14 +61,14 @@ enum MatrixLayout {
     static let lastUsed: CGFloat = 76
     static let actions: CGFloat = 60
     static let inset: CGFloat = Theme.Space.lg
-    /// Chevron width plus gap, so names line up under section titles.
+    /// Chevron width plus gap, so row tiles line up under section icons.
     static let nameIndent: CGFloat = 18
 }
 
 struct MatrixColumnHeader: View {
     var body: some View {
         HStack(spacing: 0) {
-            Text("Skill").padding(.leading, MatrixLayout.nameIndent).frame(maxWidth: .infinity, alignment: .leading)
+            Text("Name").padding(.leading, MatrixLayout.nameIndent).frame(maxWidth: .infinity, alignment: .leading)
             ForEach(Agent.allCases, id: \.self) { agent in
                 AgentIcon(agent: agent, style: .mono, size: 14)
                     .opacity(0.75)
@@ -79,7 +86,7 @@ struct MatrixColumnHeader: View {
 }
 
 struct MatrixSections: View {
-    var sections: [SkillSection]
+    var sections: [LibrarySection]
     var expandAll = false
     @State private var toggled: Set<String> = []
 
@@ -97,7 +104,7 @@ struct MatrixSections: View {
                 }
             }
             if sections.isEmpty {
-                Text("No skills match.")
+                Text("Nothing matches.")
                     .font(Theme.Font.body).foregroundStyle(Theme.Palette.textSecondary)
                     .frame(maxWidth: .infinity).padding(.top, 60)
             }
@@ -107,7 +114,7 @@ struct MatrixSections: View {
 }
 
 struct SectionHeaderRow: View {
-    var section: SkillSection
+    var section: LibrarySection
     var collapsed: Bool
     var toggle: () -> Void
     @State private var hovering = false
@@ -119,9 +126,19 @@ struct SectionHeaderRow: View {
                 .foregroundStyle(Theme.Palette.textTertiary)
                 .rotationEffect(.degrees(collapsed ? 0 : 90))
                 .frame(width: 10)
+            Group {
+                switch section.icon {
+                case .symbol(let name):
+                    Image(systemName: name).font(.system(size: 12)).foregroundStyle(Theme.Palette.textSecondary)
+                case .agent(let agent):
+                    AgentIcon(agent: agent, style: .mono, size: 13).opacity(0.7)
+                }
+            }
+            .frame(width: 18)
+            .help(section.kind)
             Text(section.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.Palette.text)
-                .help(section.subtitle)
-            Text("\(section.rows.count)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textTertiary)
+                .help(section.kind)
+            Text(section.contents).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
             if let link = section.link, hovering {
                 Link(destination: link) {
                     Image(systemName: "arrow.up.right").font(.system(size: 10, weight: .semibold))
@@ -142,16 +159,19 @@ struct SectionHeaderRow: View {
 
 struct MatrixRow: View {
     @Environment(Store.self) private var store
-    var row: SkillRow
+    var row: LibraryRow
     @State private var hovering = false
     @State private var confirmingRemove = false
 
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 10) {
+                ItemTile(kind: row.kind, name: row.name)
                 Text(row.name).font(Theme.Font.bodyMedium).foregroundStyle(Theme.Palette.text).lineLimit(1)
                     .layoutPriority(1)
-                if row.installedAgents.isEmpty {
+                if !row.enabled {
+                    Text("disabled").font(Theme.Font.secondary).foregroundStyle(Theme.Palette.textTertiary)
+                } else if row.installedAgents.isEmpty {
                     Text("in the lockfile, not installed in any agent").font(Theme.Font.secondary).foregroundStyle(Theme.Palette.idle)
                 } else if let summary = row.summary {
                     Text(summary).font(Theme.Font.secondary).foregroundStyle(Theme.Palette.textTertiary).lineLimit(1)
@@ -179,13 +199,15 @@ struct MatrixRow: View {
                     IconButton(systemImage: "folder", help: "Show in Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
                     }
+                    .opacity(hovering ? 1 : 0)
                 }
+                // Removal is always visible where the app can do it safely.
                 if row.isExternal {
-                    IconButton(systemImage: "trash", help: "Remove with npx skills") { confirmingRemove = true }
+                    IconButton(systemImage: "trash", help: "Remove from every agent") { confirmingRemove = true }
+                        .opacity(hovering ? 1 : 0.55)
                 }
             }
             .frame(width: MatrixLayout.actions, alignment: .trailing)
-            .opacity(hovering ? 1 : 0)
         }
         .padding(.horizontal, MatrixLayout.inset - Theme.Space.xs)
         .frame(height: Theme.Size.row)

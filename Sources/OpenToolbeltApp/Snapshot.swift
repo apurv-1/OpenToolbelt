@@ -24,11 +24,9 @@ enum Snapshot {
                 let skills = VStack(spacing: 0) {
                     MatrixColumnHeader()
                     Hairline()
-                    MatrixSections(sections: SkillSection.group(store.rows)).padding(.vertical, 8)
+                    MatrixSections(sections: LibrarySection.group(store.rows)).padding(.vertical, 8)
                 }
                 write(skills, store, scheme, width: 900, to: directory.appendingPathComponent("skills-\(name).png"))
-                write(MCPServerList(servers: store.mcpServers), store, scheme, width: 900,
-                      to: directory.appendingPathComponent("mcp-\(name).png"))
             }
         }
     }

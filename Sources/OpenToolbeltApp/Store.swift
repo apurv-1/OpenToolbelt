@@ -2,20 +2,20 @@ import Foundation
 import Observation
 import OpenToolbeltCore
 
-/// What the skills screen is showing.
-enum SkillFilter: Hashable {
+/// What the library screen is showing.
+enum LibraryFilter: Hashable {
     case all
-    case external
+    case skills
+    case mcpServers
     case idle
     case agent(Agent)
-    /// Loaded by one agent every session, never used there.
+    /// Skills one agent loads every session but never used there.
     case idleIn(Agent)
 }
 
 enum Page: Hashable {
     case overview
-    case skills(SkillFilter)
-    case mcpServers
+    case library(LibraryFilter)
 }
 
 /// Holds the latest audit and runs scans off the main thread.
@@ -44,28 +44,24 @@ final class Store {
         lastScan = .now
     }
 
-    var rows: [SkillRow] { result?.skills.rows ?? [] }
-    var columns: [AgentColumn] { result?.skills.agents ?? [] }
+    var rows: [LibraryRow] { result?.library.rows ?? [] }
+    var columns: [AgentColumn] { result?.library.agents ?? [] }
     var detectedAgents: [Agent] { columns.filter(\.detected).map(\.agent) }
 
-    func rows(_ filter: SkillFilter) -> [SkillRow] {
+    func rows(_ filter: LibraryFilter) -> [LibraryRow] {
         switch filter {
         case .all: rows
-        case .external: rows.filter(\.isExternal)
+        case .skills: rows.filter { $0.kind == .skill }
+        case .mcpServers: rows.filter { $0.kind == .mcpServer }
         case .idle: rows.filter(\.isIdle)
         case .agent(let agent): rows.filter { $0.cells[agent]?.installed == true }
-        case .idleIn(let agent): (result?.skills.loaded(by: agent) ?? []).filter { $0.cells[agent]?.uses == 0 }
+        case .idleIn(let agent): (result?.library.loaded(by: agent) ?? []).filter { $0.cells[agent]?.uses == 0 }
         }
     }
 
-    var externalSources: Int {
-        Set(rows.compactMap { if case .external(let source, _) = $0.origin { source } else { nil } }).count
-    }
-
-    var mcpServers: [(agent: Agent, item: ItemReport)] {
-        (result?.agents ?? []).flatMap { report in
-            report.items.filter { $0.item.kind == .mcpServer }.map { (report.agent, $0) }
-        }
+    /// MCP servers configured in an agent whose usage we can read.
+    var trackedServers: [LibraryRow] {
+        rows(.mcpServers).filter { row in row.cells.contains { $0.key.tracksUsage && $0.value.installed } }
     }
 
     var sessions: Int { columns.compactMap(\.sessions).reduce(0, +) }
@@ -78,27 +74,38 @@ final class Store {
     }
 }
 
-extension SkillRow {
+extension LibraryRow {
     var isExternal: Bool {
         if case .external = origin { return true }
         return false
     }
 }
 
-/// Groups of rows as the matrix shows them: one per external source, then
-/// hand-made, plugin, claude.ai and built-in skills.
-struct SkillSection: Identifiable {
-    var title: String
-    var subtitle: String
-    var link: URL?
-    var rows: [SkillRow]
-    var collapsedByDefault: Bool
-    var id: String { subtitle + "/" + title }
+/// Groups of rows as the library shows them: external repos, plugins,
+/// configured MCP servers, hand-made skills, then synced and built-in skills.
+struct LibrarySection: Identifiable {
+    enum Icon { case symbol(String), agent(Agent) }
 
-    static func group(_ rows: [SkillRow]) -> [SkillSection] {
-        var external: [String: [SkillRow]] = [:], links: [String: URL] = [:]
-        var local: [SkillRow] = [], plugins: [String: [SkillRow]] = [:], synced: [SkillRow] = []
-        var builtIn: [Agent: [SkillRow]] = [:]
+    var title: String
+    /// What the group is, shown on hover.
+    var kind: String
+    var icon: Icon
+    var link: URL?
+    var rows: [LibraryRow]
+    var collapsedByDefault: Bool
+    var id: String { kind + "/" + title }
+
+    /// "8 skills · 1 MCP", naming each kind the group holds.
+    var contents: String {
+        let skills = rows.filter { $0.kind == .skill }.count, servers = rows.count - skills
+        return [skills > 0 ? "\(skills) \(skills == 1 ? "skill" : "skills")" : nil, servers > 0 ? "\(servers) MCP" : nil]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
+
+    static func group(_ rows: [LibraryRow]) -> [LibrarySection] {
+        var external: [String: [LibraryRow]] = [:], links: [String: URL] = [:]
+        var plugins: [String: [LibraryRow]] = [:], configured: [LibraryRow] = [], local: [LibraryRow] = []
+        var synced: [LibraryRow] = [], builtIn: [Agent: [LibraryRow]] = [:]
         for row in rows {
             switch row.origin {
             case .external(let source, let url):
@@ -106,47 +113,42 @@ struct SkillSection: Identifiable {
                 if let url, url.hasPrefix("http"), let link = URL(string: url.replacingOccurrences(of: ".git", with: "")) {
                     links[source] = link
                 }
-            case .local: local.append(row)
             case .plugin(let plugin): plugins[plugin, default: []].append(row)
+            case .configured: configured.append(row)
+            case .local: local.append(row)
             case .synced: synced.append(row)
             case .builtIn(let agent): builtIn[agent, default: []].append(row)
             }
         }
-        var sections = external.keys.sorted().map {
-            SkillSection(title: $0, subtitle: "npx skills", link: links[$0], rows: external[$0]!, collapsedByDefault: false)
+        // Within a group, MCP servers sit above skills.
+        func ordered(_ rows: [LibraryRow]) -> [LibraryRow] {
+            rows.sorted { ($0.kind == .mcpServer ? 0 : 1, $0.name) < ($1.kind == .mcpServer ? 0 : 1, $1.name) }
         }
-        if !local.isEmpty {
-            sections.append(SkillSection(title: "Local", subtitle: "added by hand", rows: local, collapsedByDefault: false))
+        var sections = external.keys.sorted().map {
+            LibrarySection(title: $0, kind: "Installed with npx skills", icon: .symbol("arrow.down.circle"),
+                           link: links[$0], rows: ordered(external[$0]!), collapsedByDefault: false)
         }
         sections += plugins.keys.sorted().map {
-            SkillSection(title: $0, subtitle: "Claude Code plugin", rows: plugins[$0]!, collapsedByDefault: true)
+            LibrarySection(title: $0, kind: "Claude Code plugin", icon: .symbol("puzzlepiece.extension"),
+                           rows: ordered(plugins[$0]!), collapsedByDefault: true)
+        }
+        if !configured.isEmpty {
+            sections.append(LibrarySection(title: "MCP servers", kind: "From agent config files", icon: .symbol("powerplug"),
+                                           rows: configured, collapsedByDefault: false))
+        }
+        if !local.isEmpty {
+            sections.append(LibrarySection(title: "Local skills", kind: "Added by hand", icon: .symbol("folder"),
+                                           rows: local, collapsedByDefault: false))
         }
         if !synced.isEmpty {
-            sections.append(SkillSection(title: "claude.ai", subtitle: "synced", rows: synced, collapsedByDefault: true))
+            sections.append(LibrarySection(title: "claude.ai", kind: "Synced from claude.ai", icon: .symbol("icloud"),
+                                           rows: synced, collapsedByDefault: true))
         }
         sections += builtIn.keys.sorted { $0.rawValue < $1.rawValue }.map {
-            SkillSection(title: $0.displayName, subtitle: "built in", rows: builtIn[$0]!, collapsedByDefault: true)
+            LibrarySection(title: "\($0.displayName) built-in", kind: "Ships with \($0.displayName)", icon: .agent($0),
+                           rows: builtIn[$0]!, collapsedByDefault: true)
         }
         return sections
-    }
-}
-
-extension InstalledItem {
-    /// Plugin MCP servers drop their `plugin_<plugin>_` prefix for display.
-    var displayName: String {
-        if kind == .mcpServer, case .plugin(let plugin) = scope, name.hasPrefix("plugin_\(plugin)_") {
-            return String(name.dropFirst("plugin_\(plugin)_".count))
-        }
-        return name
-    }
-
-    var sourceLabel: String {
-        switch scope {
-        case .user: "user"
-        case .project(let path): URL(fileURLWithPath: path).lastPathComponent
-        case .plugin(let plugin): plugin
-        case .synced: "claude.ai"
-        }
     }
 }
 
