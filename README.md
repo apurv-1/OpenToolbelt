@@ -16,7 +16,13 @@
   <a href="docs/design-system.md">Design system</a>
 </p>
 
-![OpenToolbelt overview](docs/images/overview.png)
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/images/demo.gif" alt="OpenToolbelt in 30 seconds: the token cost of unused skills, trimmed in one click" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="docs/demo.mp4">▶ Watch the 30-second demo with sound</a>
+</p>
 
 ## Why
 
@@ -35,6 +41,8 @@ OpenToolbelt reads those logs and puts the answer next to what is installed.
 - **Lists everything in one place.** Every skill and MCP server across six agents, grouped by where it came from: `npx skills` repos, Claude Code plugins, agent config files, hand-made skills, and built-ins.
 - **Adds and removes skills.** Paste `owner/repo`, pick agents, and it runs `npx skills add` for you.
 - **Lives in the menu bar.** A quick look at your agents without opening the window.
+
+![OpenToolbelt overview](docs/images/overview.png)
 
 ![The library](docs/images/library.png)
 
