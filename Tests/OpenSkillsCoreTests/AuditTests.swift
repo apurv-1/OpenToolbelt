@@ -194,3 +194,52 @@ struct FakeHome {
         #expect(line == #"'npx' '--yes' 'skills' 'add' 'x'\''; rm -rf ~; echo '\'''"#)
     }
 }
+
+@Suite struct InsightsTests {
+    let home = FakeHome()
+
+    init() throws {
+        let h = home
+        try h.write(".agents/.skill-lock.json", h.json(["skills": [
+            "loved": ["source": "acme/skills"],
+            "gone": ["source": "acme/skills"],
+        ]]))
+        try h.write(".claude/skills/loved/SKILL.md", "---\nname: loved\ndescription: |\n  Two lines\n  of description.\n---\n")
+        try h.skill(".claude/skills/idle", name: "idle")
+        try h.skill(".cursor/skills/other", name: "other")
+        try h.write(".claude.json", h.json(["mcpServers": ["quiet": [:]],
+                                            "projects": ["/a": ["mcpServers": ["quiet": [:]]]]]))
+        try h.write(".claude/projects/-work/s1.jsonl", h.toolUse("t1", "Skill", ["skill": "loved"]))
+    }
+
+    @Test func blockScalarDescriptionsAreRead() throws {
+        let row = try #require(Audit.run(home: home.root).skills.rows.first { $0.name == "loved" })
+        #expect(row.summary == "Two lines of description.")
+    }
+
+    @Test func suggestsPruningSpreadingAndCleanup() throws {
+        let insights = Audit.run(home: home.root).insights
+        guard case .pruneIdle(let agent, let skills, let tokens) = insights.first?.kind else {
+            Issue.record("expected prune first"); return
+        }
+        #expect(agent == .claudeCode)
+        #expect(skills == ["idle"])
+        #expect(tokens > 0)
+        #expect(insights.contains { if case .spread("loved", "acme/skills", [.cursor]) = $0.kind { true } else { false } })
+        #expect(insights.contains { if case .staleLock(["gone"]) = $0.kind { true } else { false } })
+        #expect(insights.contains { if case .idleServers(.claudeCode, ["quiet"]) = $0.kind { true } else { false } })
+    }
+
+    @Test func dailyActivityBucketsByDay() {
+        let now = ISO8601DateFormatter().date(from: "2026-10-02T12:00:00Z")!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let events = [
+            UsageEvent(agent: .claudeCode, kind: .skill, name: "a", timestamp: now, cwd: nil, viaPrompt: false),
+            UsageEvent(agent: .claudeCode, kind: .mcpServer, name: "b", timestamp: now.addingTimeInterval(-86400), cwd: nil, viaPrompt: false),
+        ]
+        let days = DailyActivity.daily(events, days: 3, now: now, calendar: calendar)
+        #expect(days.map(\.skillCalls) == [0, 0, 1])
+        #expect(days.map(\.mcpCalls) == [0, 1, 0])
+    }
+}

@@ -12,9 +12,9 @@ public enum SkillsCommand {
         return arguments
     }
 
-    /// Removes a global skill from every agent.
-    public static func remove(skill: String) -> [String] {
-        ["skills", "remove", skill, "--global", "--agent", "*", "--yes"]
+    /// Removes global skills from every agent.
+    public static func remove(skills: [String]) -> [String] {
+        ["skills", "remove"] + skills + ["--global", "--agent", "*", "--yes"]
     }
 
     /// One shell command line, with every argument single-quoted so user

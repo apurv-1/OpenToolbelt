@@ -32,15 +32,22 @@ public struct SkillRow: Sendable, Identifiable {
     public var installedAt: Date?
     public var paths: [String] = []
     public var cells: [Agent: SkillCell] = [:]
+    /// False for skills in a disabled Claude Code plugin: on disk, but not loaded.
+    public var enabled = true
 
     public var id: String { "\(origin)|\(invocation)" }
+
+    /// Rough tokens this skill adds to every session: agents list each
+    /// skill's name and description up front so the model can pick one.
+    /// Estimated at four characters per token.
+    public var contextTokens: Int { (invocation.count + (summary?.count ?? 0) + 16) / 4 }
 
     public var totalUses: Int { cells.values.compactMap(\.uses).reduce(0, +) }
     public var lastUsed: Date? { cells.values.compactMap(\.lastUsed).max() }
     public var installedAgents: [Agent] { Agent.allCases.filter { cells[$0]?.installed == true } }
     /// Installed in at least one agent whose usage we can read, and used in none.
     public var isIdle: Bool {
-        totalUses == 0 && cells.contains { $0.key.tracksUsage && $0.value.installed }
+        enabled && totalUses == 0 && cells.contains { $0.key.tracksUsage && $0.value.installed }
     }
 }
 
@@ -56,6 +63,19 @@ public struct AgentColumn: Sendable, Identifiable {
 public struct SkillMatrix: Sendable {
     public var agents: [AgentColumn]
     public var rows: [SkillRow]
+
+    /// Skills an agent loads at the start of each session.
+    public func loaded(by agent: Agent) -> [SkillRow] {
+        rows.filter { $0.enabled && $0.cells[agent]?.installed == true }
+    }
+
+    /// Estimated tokens of skill listings an agent carries into every
+    /// session, and how much of that is skills it has never used.
+    public func contextTokens(_ agent: Agent) -> (total: Int, idle: Int) {
+        let loaded = loaded(by: agent)
+        let idle = loaded.filter { $0.cells[agent]?.uses == 0 }
+        return (loaded.map(\.contextTokens).reduce(0, +), idle.map(\.contextTokens).reduce(0, +))
+    }
 
     public static func build(home: URL, claudeInventory: [InstalledItem], usage: [Agent: UsageScan]) -> SkillMatrix {
         let lock = SkillLock.read(home: home)
@@ -105,6 +125,7 @@ public struct SkillMatrix: Sendable {
             default: continue
             }
             upsert("claude/\(item.name)", name: item.name, invocation: item.name, origin: origin, agent: .claudeCode, path: item.path)
+            rows["claude/\(item.name)"]?.enabled = item.enabled
         }
 
         // Usage, for the agents whose logs we read.

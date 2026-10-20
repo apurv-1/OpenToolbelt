@@ -55,20 +55,30 @@ enum Files {
 
 enum SkillFile {
     /// A frontmatter field from a SKILL.md, such as `name` or `description`.
-    /// Reads single-line values only, which is how skills write them.
+    /// Reads plain one-line values and YAML block scalars (`|`, `>`), which
+    /// is how skills write long descriptions. Block lines are joined by spaces.
     static func frontmatter(_ key: String, in url: URL) -> String? {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         guard lines.first?.trimmingCharacters(in: .whitespaces) == "---" else { return nil }
-        for line in lines.dropFirst() {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
+        var index = 1
+        while index < lines.count {
+            let trimmed = lines[index].trimmingCharacters(in: .whitespaces)
             if trimmed == "---" { break }
-            if trimmed.hasPrefix("\(key):") {
-                let value = trimmed.dropFirst(key.count + 1)
-                    .trimmingCharacters(in: .whitespaces)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                return value.isEmpty || value == ">" || value == "|" ? nil : value
+            index += 1
+            guard trimmed.hasPrefix("\(key):") else { continue }
+            let value = trimmed.dropFirst(key.count + 1).trimmingCharacters(in: .whitespaces)
+            guard ["|", ">", "|-", ">-", "|+", ">+"].contains(value) else {
+                let plain = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                return plain.isEmpty ? nil : plain
             }
+            var block: [String] = []
+            while index < lines.count, lines[index].first == " " || lines[index].first == "\t" || lines[index].isEmpty {
+                let line = lines[index].trimmingCharacters(in: .whitespaces)
+                if !line.isEmpty { block.append(line) }
+                index += 1
+            }
+            return block.isEmpty ? nil : block.joined(separator: " ")
         }
         return nil
     }

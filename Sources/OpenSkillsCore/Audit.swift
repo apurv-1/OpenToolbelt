@@ -5,11 +5,39 @@ public struct AuditResult: Sendable {
     public var agents: [AgentReport]
     /// Every skill across every supported agent.
     public var skills: SkillMatrix
+    /// Skill and MCP calls per day, oldest first.
+    public var activity: [DailyActivity]
+    public var insights: [Insight] { Insights.compute(self) }
+}
+
+public struct DailyActivity: Sendable, Identifiable {
+    public var day: Date
+    public var skillCalls: Int
+    public var mcpCalls: Int
+    public var id: Date { day }
+
+    /// Counts calls per calendar day for the `days` days ending today.
+    static func daily(_ events: [UsageEvent], days: Int, now: Date, calendar: Calendar = .current) -> [DailyActivity] {
+        let today = calendar.startOfDay(for: now)
+        var buckets: [Date: (Int, Int)] = [:]
+        for event in events {
+            guard let timestamp = event.timestamp else { continue }
+            let day = calendar.startOfDay(for: timestamp)
+            var bucket = buckets[day] ?? (0, 0)
+            if event.kind == .skill { bucket.0 += 1 } else { bucket.1 += 1 }
+            buckets[day] = bucket
+        }
+        return (0..<days).reversed().compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: today).map { day in
+                DailyActivity(day: day, skillCalls: buckets[day]?.0 ?? 0, mcpCalls: buckets[day]?.1 ?? 0)
+            }
+        }
+    }
 }
 
 /// Joins what is installed with what the transcripts show was used.
 public enum Audit {
-    public static func run(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> AuditResult {
+    public static func run(home: URL = FileManager.default.homeDirectoryForCurrentUser, now: Date = .now) -> AuditResult {
         let claude = ClaudeCode(home: home)
         let codex = Codex(home: home)
         let claudeInventory = claude.inventory()
@@ -20,7 +48,8 @@ public enum Audit {
                 report(.codex, installed: codex.inventory(), scan: codexUsage),
             ],
             skills: SkillMatrix.build(home: home, claudeInventory: claudeInventory,
-                                      usage: [.claudeCode: claudeUsage, .codex: codexUsage])
+                                      usage: [.claudeCode: claudeUsage, .codex: codexUsage]),
+            activity: DailyActivity.daily(claudeUsage.events + codexUsage.events, days: 30, now: now)
         )
     }
 
