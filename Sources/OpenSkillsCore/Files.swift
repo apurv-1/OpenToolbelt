@@ -54,19 +54,20 @@ enum Files {
 }
 
 enum SkillFile {
-    /// The `name:` from a SKILL.md frontmatter, or nil when absent.
-    static func frontmatterName(_ url: URL) -> String? {
+    /// A frontmatter field from a SKILL.md, such as `name` or `description`.
+    /// Reads single-line values only, which is how skills write them.
+    static func frontmatter(_ key: String, in url: URL) -> String? {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         guard lines.first?.trimmingCharacters(in: .whitespaces) == "---" else { return nil }
         for line in lines.dropFirst() {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed == "---" { break }
-            if trimmed.hasPrefix("name:") {
-                let value = trimmed.dropFirst("name:".count)
+            if trimmed.hasPrefix("\(key):") {
+                let value = trimmed.dropFirst(key.count + 1)
                     .trimmingCharacters(in: .whitespaces)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                return value.isEmpty ? nil : value
+                return value.isEmpty || value == ">" || value == "|" ? nil : value
             }
         }
         return nil
@@ -77,7 +78,7 @@ enum SkillFile {
         Files.subdirectories(of: root).compactMap { dir in
             let file = dir.appendingPathComponent("SKILL.md")
             guard Files.exists(file) else { return nil }
-            return (frontmatterName(file) ?? dir.lastPathComponent, dir)
+            return (frontmatter("name", in: file) ?? dir.lastPathComponent, dir)
         }
     }
 }

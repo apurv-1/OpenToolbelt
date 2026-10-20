@@ -1,8 +1,52 @@
 import Foundation
 
+/// Coding agents, keyed by their `npx skills` agent id.
 public enum Agent: String, Codable, Sendable, CaseIterable {
-    case claudeCode = "Claude Code"
-    case codex = "Codex"
+    case claudeCode = "claude-code"
+    case codex
+    case cursor
+    case opencode
+    case windsurf
+    case geminiCLI = "gemini-cli"
+
+    public var displayName: String {
+        switch self {
+        case .claudeCode: "Claude Code"
+        case .codex: "Codex"
+        case .cursor: "Cursor"
+        case .opencode: "OpenCode"
+        case .windsurf: "Windsurf"
+        case .geminiCLI: "Gemini CLI"
+        }
+    }
+
+    /// Global skill folders, relative to home, as `npx skills -g` installs them
+    /// (vercel-labs/skills docs/agents.md). Codex also reads its older folder.
+    public var skillDirectories: [String] {
+        switch self {
+        case .claudeCode: [".claude/skills"]
+        case .codex: [".agents/skills", ".codex/skills"]
+        case .cursor: [".cursor/skills"]
+        case .opencode: [".config/opencode/skills"]
+        case .windsurf: [".codeium/windsurf/skills"]
+        case .geminiCLI: [".gemini/skills"]
+        }
+    }
+
+    /// A folder whose presence means the agent is set up on this Mac.
+    var homeMarker: String {
+        switch self {
+        case .claudeCode: ".claude"
+        case .codex: ".codex"
+        case .cursor: ".cursor"
+        case .opencode: ".config/opencode"
+        case .windsurf: ".codeium/windsurf"
+        case .geminiCLI: ".gemini"
+        }
+    }
+
+    /// Whether OpenSkills can read this agent's session logs for usage.
+    public var tracksUsage: Bool { self == .claudeCode || self == .codex }
 }
 
 public enum ItemKind: String, Codable, Sendable {

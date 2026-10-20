@@ -1,14 +1,27 @@
 import Foundation
 
+public struct AuditResult: Sendable {
+    /// Per-agent installed-vs-used reports for the agents whose logs we read.
+    public var agents: [AgentReport]
+    /// Every skill across every supported agent.
+    public var skills: SkillMatrix
+}
+
 /// Joins what is installed with what the transcripts show was used.
 public enum Audit {
-    public static func run(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> [AgentReport] {
+    public static func run(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> AuditResult {
         let claude = ClaudeCode(home: home)
         let codex = Codex(home: home)
-        return [
-            report(.claudeCode, installed: claude.inventory(), scan: claude.usage()),
-            report(.codex, installed: codex.inventory(), scan: codex.usage()),
-        ]
+        let claudeInventory = claude.inventory()
+        let claudeUsage = claude.usage(), codexUsage = codex.usage()
+        return AuditResult(
+            agents: [
+                report(.claudeCode, installed: claudeInventory, scan: claudeUsage),
+                report(.codex, installed: codex.inventory(), scan: codexUsage),
+            ],
+            skills: SkillMatrix.build(home: home, claudeInventory: claudeInventory,
+                                      usage: [.claudeCode: claudeUsage, .codex: codexUsage])
+        )
     }
 
     public static func report(_ agent: Agent, installed: [InstalledItem], scan: UsageScan) -> AgentReport {

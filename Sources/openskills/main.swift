@@ -2,7 +2,7 @@ import Foundation
 import OpenSkillsCore
 
 let started = Date()
-let reports = Audit.run()
+let reports = Audit.run().agents
 
 if CommandLine.arguments.contains("--json") {
     let encoder = JSONEncoder()
@@ -23,7 +23,7 @@ func pad(_ text: String, _ width: Int) -> String {
 
 for report in reports {
     let window = "\(when(report.firstSeen)) to \(when(report.lastSeen))"
-    print("\n\(report.agent.rawValue): \(report.sessions) sessions, \(window)")
+    print("\n\(report.agent.displayName): \(report.sessions) sessions, \(window)")
 
     for kind in [ItemKind.skill, .mcpServer] {
         let items = report.items.filter { $0.item.kind == kind }

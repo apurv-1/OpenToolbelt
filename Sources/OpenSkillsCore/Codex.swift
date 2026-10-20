@@ -11,9 +11,9 @@ public struct Codex: Sendable {
     // MARK: Inventory
 
     public func inventory() -> [InstalledItem] {
-        var items = SkillFile.skills(in: codexDir.appendingPathComponent("skills")).map {
-            InstalledItem(agent: .codex, kind: .skill, name: $0.name, scope: .user, path: $0.url.path, enabled: true)
-        }
+        var items = Agent.codex.skillDirectories
+            .flatMap { SkillFile.skills(in: home.appendingPathComponent($0)) }
+            .map { InstalledItem(agent: .codex, kind: .skill, name: $0.name, scope: .user, path: $0.url.path, enabled: true) }
         let config = codexDir.appendingPathComponent("config.toml")
         if let text = try? String(contentsOf: config, encoding: .utf8) {
             items += Self.mcpServers(inTOML: text).map {

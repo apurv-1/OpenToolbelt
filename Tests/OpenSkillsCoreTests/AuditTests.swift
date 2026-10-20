@@ -133,3 +133,64 @@ struct FakeHome {
         #expect(ToolNames.mcpServer("Bash") == nil)
     }
 }
+
+@Suite struct SkillMatrixTests {
+    let home = FakeHome()
+
+    init() throws {
+        let h = home
+        try h.write(".agents/.skill-lock.json", h.json(["version": 3, "skills": [
+            "shared": ["source": "acme/skills", "sourceUrl": "https://github.com/acme/skills.git", "installedAt": "2026-09-01T00:00:00.000Z"],
+            "dropped": ["source": "acme/skills"],
+        ]]))
+        // npx skills keeps the canonical copy in ~/.agents/skills and links it per agent.
+        try h.skill(".agents/skills/shared", name: "shared")
+        try FileManager.default.createDirectory(at: h.root.appendingPathComponent(".claude/skills"), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: h.root.appendingPathComponent(".claude/skills/shared"),
+                                                   withDestinationURL: h.root.appendingPathComponent(".agents/skills/shared"))
+        try h.skill(".cursor/skills/handmade", name: "handmade")
+        try h.skill(".cursor/skills-cursor/review", name: "review")
+        try h.write(".claude/projects/-work/s1.jsonl", h.toolUse("t1", "Skill", ["skill": "shared"]))
+    }
+
+    func matrix() -> SkillMatrix { Audit.run(home: home.root).skills }
+
+    @Test func externalSkillsKeepTheirSourceAndPerAgentState() throws {
+        let rows = matrix().rows
+        let shared = try #require(rows.first { $0.name == "shared" })
+        #expect(shared.origin == .external(source: "acme/skills", url: "https://github.com/acme/skills.git"))
+        #expect(shared.installedAgents == [.claudeCode, .codex])
+        #expect(shared.cells[.claudeCode]?.uses == 1)
+        #expect(shared.cells[.codex]?.uses == 0)
+        #expect(shared.installedAt != nil)
+
+        let dropped = try #require(rows.first { $0.name == "dropped" })
+        #expect(dropped.installedAgents.isEmpty)  // in the lockfile, gone from disk
+    }
+
+    @Test func otherSkillsAreLocalOrBuiltInWithUnknownUsage() throws {
+        let rows = matrix().rows
+        let handmade = try #require(rows.first { $0.name == "handmade" })
+        #expect(handmade.origin == .local)
+        #expect(handmade.cells[.cursor] == SkillCell(installed: true, uses: nil, lastUsed: nil))
+        #expect(rows.first { $0.name == "review" }?.origin == .builtIn(.cursor))
+    }
+
+    @Test func detectsAgentsByTheirHomeFolder() {
+        let detected = matrix().agents.filter(\.detected).map(\.agent)
+        #expect(detected == [.claudeCode, .cursor])
+    }
+}
+
+@Suite struct SkillsCommandTests {
+    @Test func addInstallsGloballyForChosenAgents() {
+        #expect(SkillsCommand.add(source: "acme/skills", skills: [], agents: [.claudeCode, .cursor]) ==
+                ["skills", "add", "acme/skills", "--global", "--yes", "--agent", "claude-code", "--agent", "cursor", "--skill", "*"])
+        #expect(SkillsCommand.add(source: "acme/skills", skills: ["one"], agents: [.codex]).suffix(2) == ["--skill", "one"])
+    }
+
+    @Test func shellLineQuotesUserInput() {
+        let line = SkillsCommand.shellLine(["skills", "add", "x'; rm -rf ~; echo '"])
+        #expect(line == #"'npx' '--yes' 'skills' 'add' 'x'\''; rm -rf ~; echo '\'''"#)
+    }
+}
