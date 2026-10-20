@@ -62,19 +62,14 @@ public struct UsageScan: Sendable {
         if firstSeen.map({ date < $0 }) ?? true { firstSeen = date }
         if lastSeen.map({ date > $0 }) ?? true { lastSeen = date }
     }
-
-    mutating func merge(_ other: UsageScan) {
-        events += other.events
-        sessions += other.sessions
-        see(other.firstSeen)
-        see(other.lastSeen)
-    }
 }
 
-public struct ItemReport: Codable, Sendable {
+public struct ItemReport: Codable, Sendable, Identifiable {
     public var item: InstalledItem
     public var uses: Int
     public var lastUsed: Date?
+
+    public var id: String { "\(item.agent.rawValue)|\(item.kind.rawValue)|\(item.name)|\(item.scope.label)" }
 }
 
 /// Something the transcripts used that no scanned config declares: a built-in

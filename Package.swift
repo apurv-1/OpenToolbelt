@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "OpenSkills",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     products: [
         .library(name: "OpenSkillsCore", targets: ["OpenSkillsCore"]),
         .executable(name: "openskills", targets: ["openskills"]),
@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .target(name: "OpenSkillsCore"),
         .executableTarget(name: "openskills", dependencies: ["OpenSkillsCore"]),
+        .executableTarget(name: "OpenSkillsApp", dependencies: ["OpenSkillsCore"]),
         .testTarget(name: "OpenSkillsCoreTests", dependencies: ["OpenSkillsCore"]),
     ]
 )
