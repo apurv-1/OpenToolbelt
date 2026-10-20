@@ -94,23 +94,3 @@ struct Sidebar: View {
         .tag(page)
     }
 }
-
-// MARK: Page chrome
-
-/// Title, count, search and the primary action, in one 52pt bar.
-struct PageHeader<Trailing: View>: View {
-    var title: String
-    var count: Int
-    @ViewBuilder var trailing: Trailing
-
-    var body: some View {
-        HStack(spacing: Theme.Space.sm) {
-            Text(title).font(Theme.Font.title).foregroundStyle(Theme.Palette.text)
-            Text("\(count)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textTertiary)
-            Spacer()
-            trailing
-        }
-        .padding(.horizontal, Theme.Space.lg)
-        .frame(height: Theme.Size.header)
-    }
-}

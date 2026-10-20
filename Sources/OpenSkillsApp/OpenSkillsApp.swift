@@ -21,7 +21,7 @@ struct OpenSkillsApp: App {
             MainWindow().environment(store)
         }
         .defaultSize(width: 1080, height: 740)
-        .windowToolbarStyle(.unified(showsTitle: false))
+        .windowToolbarStyle(.unified)
         .defaultLaunchBehavior(.suppressed)
     }
 }

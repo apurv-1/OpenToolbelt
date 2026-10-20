@@ -39,38 +39,6 @@ struct StatusDot: View {
     }
 }
 
-/// Inline search field in the Raycast style.
-struct SearchField: View {
-    @Binding var text: String
-    var prompt: String
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Theme.Palette.textTertiary)
-            TextField(prompt, text: $text)
-                .textFieldStyle(.plain)
-                .font(Theme.Font.body)
-                .focused($focused)
-            if text.isEmpty {
-                KeyCap(keys: "⌘F")
-            } else {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.Palette.textTertiary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 9)
-        .frame(width: 240, height: 28)
-        .background(Theme.Palette.raised, in: .rect(cornerRadius: Theme.Radius.control))
-        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control)
-            .strokeBorder(focused ? Theme.Palette.textTertiary : .clear, lineWidth: 1))
-        .background(Button("") { focused = true }.keyboardShortcut("f").hidden())
-    }
-}
-
 /// Icon-only button with a quiet hover fill.
 struct IconButton: View {
     var systemImage: String

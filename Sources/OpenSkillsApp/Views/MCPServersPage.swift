@@ -8,15 +8,12 @@ struct MCPServersPage: View {
 
     var body: some View {
         let servers = store.mcpServers.filter { query.isEmpty || $0.item.item.displayName.localizedCaseInsensitiveContains(query) }
-        VStack(spacing: 0) {
-            PageHeader(title: "MCP servers", count: servers.count) {
-                SearchField(text: $query, prompt: "Search servers")
-            }
-            Hairline()
-            ScrollView {
-                MCPServerList(servers: servers).padding(.vertical, Theme.Space.xs)
-            }
+        ScrollView {
+            MCPServerList(servers: servers).padding(.vertical, Theme.Space.xs)
         }
+        .navigationTitle("MCP servers")
+        .navigationSubtitle("\(servers.count) servers")
+        .searchable(text: $query, placement: .toolbar, prompt: "Search servers")
     }
 }
 

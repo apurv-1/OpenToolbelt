@@ -45,7 +45,6 @@ enum Theme {
 
     enum Size {
         static let row: CGFloat = 34
-        static let header: CGFloat = 52
         static let agentColumn: CGFloat = 34
     }
 

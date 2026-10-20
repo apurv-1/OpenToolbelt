@@ -10,24 +10,23 @@ struct SkillsPage: View {
     var body: some View {
         let rows = store.rows(filter).filter(matches)
         VStack(spacing: 0) {
-            PageHeader(title: title, count: rows.count) {
-                SearchField(text: $query, prompt: "Search skills")
-                Button { store.showingAddSkill = true } label: {
-                    Label("Add skills", systemImage: "plus").labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .keyboardShortcut("n")
-            }
-            SummaryLine()
-            Hairline()
             MatrixColumnHeader()
             Hairline()
             ScrollView {
                 MatrixSections(sections: SkillSection.group(rows), expandAll: !query.isEmpty)
                     .padding(.vertical, Theme.Space.xs)
             }
-            Hairline()
-            Legend()
+        }
+        .navigationTitle(title)
+        .navigationSubtitle("\(rows.count) skills")
+        .searchable(text: $query, placement: .toolbar, prompt: "Search skills")
+        .toolbar {
+            ToolbarItem { LegendButton() }
+            ToolbarItem(placement: .primaryAction) {
+                Button { store.showingAddSkill = true } label: { Label("Add skills", systemImage: "plus") }
+                    .keyboardShortcut("n")
+                    .help("Add skills (⌘N)")
+            }
         }
     }
 
@@ -45,28 +44,6 @@ struct SkillsPage: View {
         if row.name.localizedCaseInsensitiveContains(query) || (row.summary?.localizedCaseInsensitiveContains(query) ?? false) { return true }
         if case .external(let source, _) = row.origin { return source.localizedCaseInsensitiveContains(query) }
         return false
-    }
-}
-
-/// One quiet line of totals under the header.
-struct SummaryLine: View {
-    @Environment(Store.self) private var store
-
-    var body: some View {
-        let used = store.rows.filter { $0.totalUses > 0 }.count
-        let parts = [
-            "\(store.rows.count) skills",
-            "\(store.externalSources) external sources",
-            "\(used) used",
-            "\(store.rows(.idle).count) never used",
-            store.firstSeen.map { "usage from Claude Code and Codex logs since \(Format.day($0))" },
-        ].compactMap { $0 }
-        Text(parts.joined(separator: "  ·  "))
-            .font(Theme.Font.secondary)
-            .foregroundStyle(Theme.Palette.textSecondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Theme.Space.lg)
-            .padding(.bottom, Theme.Space.sm)
     }
 }
 
@@ -142,7 +119,7 @@ struct SectionHeaderRow: View {
                 .rotationEffect(.degrees(collapsed ? 0 : 90))
                 .frame(width: 10)
             Text(section.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.Palette.text)
-            Text(section.subtitle).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
+                .help(section.subtitle)
             Text("\(section.rows.count)").font(Theme.Font.number).foregroundStyle(Theme.Palette.textTertiary)
             if let link = section.link, hovering {
                 Link(destination: link) {
@@ -237,23 +214,37 @@ struct MatrixRow: View {
     }
 }
 
-struct Legend: View {
+/// The cell marks explained, behind one toolbar button instead of a footer.
+struct LegendButton: View {
+    @Environment(Store.self) private var store
+    @State private var showing = false
+
     var body: some View {
-        HStack(spacing: Theme.Space.md) {
-            entry(.used, "Used")
-            entry(.idle, "Never used")
-            entry(.installed, "Installed, usage not tracked")
-            entry(.absent, "Not installed")
-            Spacer()
-        }
-        .padding(.horizontal, Theme.Space.lg)
-        .frame(height: 36)
+        Button { showing.toggle() } label: { Label("Legend", systemImage: "info.circle") }
+            .help("What the marks mean")
+            .popover(isPresented: $showing, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 10) {
+                    entry(.used, "Used")
+                    entry(.idle, "Installed, never used")
+                    entry(.installed, "Installed, usage not tracked")
+                    entry(.absent, "Not installed")
+                    Hairline().padding(.vertical, 2)
+                    Text(note).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(Theme.Space.md)
+                .frame(width: 250)
+            }
+    }
+
+    private var note: String {
+        "Usage comes from Claude Code and Codex logs" + (store.firstSeen.map { " since \(Format.day($0))." } ?? ".")
     }
 
     private func entry(_ state: StatusDot.State, _ label: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 10) {
             StatusDot(state: state).frame(width: 10)
-            Text(label).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textTertiary)
+            Text(label).font(Theme.Font.secondary).foregroundStyle(Theme.Palette.text)
         }
     }
 }
