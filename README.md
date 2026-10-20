@@ -13,7 +13,14 @@ OpenSkills reads those transcripts and puts the answer next to what is installed
 
 ## What it shows
 
-The main screen is a skill by agent matrix.
+The overview answers what to do next:
+
+- **Context per session**: an estimate of the tokens an agent spends listing installed skills at the start of every session, and how much of that is skills it never uses.
+- **Activity**: skill and MCP calls per day for the last 30 days.
+- **Suggestions**, each with one action: trim unused skills, install a skill you use into your other agents, clean up stale lockfile entries, and review MCP servers that were never called.
+- **Most used** skills and MCP servers.
+
+Behind it is a skill by agent matrix.
 Each row is a skill, and each column is an agent: Claude Code, Codex, Cursor, OpenCode, Windsurf and Gemini CLI.
 Each cell says whether the skill is installed in that agent and, where the agent keeps readable logs, whether it was used.
 
