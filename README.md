@@ -18,23 +18,24 @@ The overview answers what to do next:
 - **Suggestions**, each with one action: trim unused skills, install a skill you use into your other agents, clean up stale lockfile entries, and review MCP servers that were never called.
 - **Most used** skills and MCP servers.
 
-Behind it is a skill by agent matrix.
-Each row is a skill, and each column is an agent: Claude Code, Codex, Cursor, OpenCode, Windsurf and Gemini CLI.
-Each cell says whether the skill is installed in that agent and, where the agent keeps readable logs, whether it was used.
+Behind it is a library of every skill and MCP server, with one column per agent: Claude Code, Codex, Cursor, OpenCode, Windsurf and Gemini CLI.
+Each cell says whether the item is installed in that agent and, where the agent keeps readable logs, whether it was used.
+Skills show as letter tiles and MCP servers as plugs.
 
-Skills are grouped by where they came from:
+Items are grouped by where they came from:
 
-- **External**: installed with `npx skills add`, grouped by source repo, read from `~/.agents/.skill-lock.json`.
-- **Local**: skill folders added by hand.
-- **Plugins, claude.ai and built-in**: skills that ship with a Claude Code plugin, sync from claude.ai, or come with the agent.
+- **npx skills repos**: skills installed with `npx skills add`, grouped by source repo, read from `~/.agents/.skill-lock.json`.
+- **Plugins**: Claude Code plugins, each listing the skills and MCP servers it bundles.
+- **MCP servers**: servers from each agent's config file.
+- **Local skills**: skill folders added by hand.
+- **claude.ai and built-in**: skills synced from claude.ai or shipped with an agent.
 
 You can add skills from the app.
 Paste `owner/repo`, a git URL or a local path, pick agents, and it runs `npx skills add` for you.
 External skills can be removed the same way.
 
 Usage comes from Claude Code and Codex session logs today.
-Other agents show whether a skill is installed, and mark usage as not tracked.
-An MCP servers page lists servers from Claude Code and Codex with their use counts.
+Other agents show whether an item is installed, and mark usage as not tracked.
 
 ## Privacy
 

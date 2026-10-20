@@ -46,6 +46,9 @@ All shared components are in `Components.swift` and `AgentIcon.swift`.
 - `IconButton`, `PrimaryButtonStyle`, `GhostButtonStyle`: the three button weights.
 - `MenuRow`: a command-palette row for the menu bar panel.
 - `AgentIcon`: an agent's logo in color or mono.
+- `ItemTile`: a letter tile for a skill, colored from a hash of its name, or a plug for an MCP server.
+
+Groups use one symbol each: a download arrow for npx skills repos, a puzzle piece for plugins, a plug for MCP servers, a folder for local skills, and the agent's logo for built-in skills.
 
 ## Shaders
 
