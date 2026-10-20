@@ -21,6 +21,11 @@ enum Snapshot {
                 let scheme: ColorScheme = name == "dark" ? .dark : .light
                 write(PopoverView(), store, scheme, width: 300, to: directory.appendingPathComponent("popover-\(name).png"))
                 write(OverviewContent().padding(24), store, scheme, width: 1000, to: directory.appendingPathComponent("overview-\(name).png"))
+                for (page, label) in [(Page.overview, "overview"), (.library(.all), "library"), (.library(.mcpServers), "mcp")] {
+                    store.page = page
+                    write(MainWindow().frame(height: 760), store, scheme, width: 1120,
+                          to: directory.appendingPathComponent("window-\(label)-\(name).png"))
+                }
                 let skills = VStack(spacing: 0) {
                     MatrixColumnHeader()
                     Hairline()

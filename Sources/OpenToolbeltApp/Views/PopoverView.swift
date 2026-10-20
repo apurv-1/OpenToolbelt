@@ -36,7 +36,7 @@ struct PopoverView: View {
                 }
             }
             Hairline().padding(.vertical, 6)
-            MenuRow(title: "Never used", detail: "\(store.rows(.idle).count)") {
+            MenuRow(title: "Unused", detail: "\(store.rows(.idle).count)") {
                 StatusDot(state: .idle)
             } action: { open(.library(.idle)) }
             MenuRow(title: "Add skills…", shortcut: "⌘N") {

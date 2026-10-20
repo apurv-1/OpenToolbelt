@@ -10,6 +10,12 @@ struct LibraryPage: View {
     var body: some View {
         let rows = store.rows(filter).filter(matches)
         VStack(spacing: 0) {
+            PageBar(title: title, detail: subtitle(rows)) {
+                SearchField(text: $query, prompt: filter == .mcpServers ? "Search servers" : "Search")
+                LegendButton()
+                // Adding only makes sense for skills; MCP servers are added in each agent.
+                if filter != .mcpServers { AddSkillsButton() }
+            }
             MatrixColumnHeader()
             Hairline()
             ScrollView {
@@ -17,17 +23,7 @@ struct LibraryPage: View {
                     .padding(.vertical, Theme.Space.xs)
             }
         }
-        .navigationTitle(title)
-        .navigationSubtitle(subtitle(rows))
-        .searchable(text: $query, placement: .toolbar, prompt: "Search")
-        .toolbar {
-            ToolbarItem { LegendButton() }
-            ToolbarItem(placement: .primaryAction) {
-                Button { store.showingAddSkill = true } label: { Label("Add skills", systemImage: "plus") }
-                    .keyboardShortcut("n")
-                    .help("Add skills (⌘N)")
-            }
-        }
+        .id(filter)
     }
 
     private var title: String {
@@ -42,6 +38,7 @@ struct LibraryPage: View {
     }
 
     private func subtitle(_ rows: [LibraryRow]) -> String {
+        if filter == .idle { return "installed, but never called in Claude Code or Codex logs" }
         let skills = rows.filter { $0.kind == .skill }.count, servers = rows.count - skills
         return [skills > 0 ? "\(skills) skills" : nil, servers > 0 ? "\(servers) MCP servers" : nil]
             .compactMap { $0 }.joined(separator: " · ")
@@ -243,8 +240,7 @@ struct LegendButton: View {
     @State private var showing = false
 
     var body: some View {
-        Button { showing.toggle() } label: { Label("Legend", systemImage: "info.circle") }
-            .help("What the marks mean")
+        IconButton(systemImage: "info.circle", help: "What the marks mean") { showing.toggle() }
             .popover(isPresented: $showing, arrowEdge: .bottom) {
                 VStack(alignment: .leading, spacing: 10) {
                     entry(.used, "Used")

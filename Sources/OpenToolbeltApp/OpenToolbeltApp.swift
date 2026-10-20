@@ -21,7 +21,9 @@ struct OpenToolbeltApp: App {
             MainWindow().environment(store)
         }
         .defaultSize(width: 1080, height: 740)
-        .windowToolbarStyle(.unified)
+        // Custom chrome: no title bar or toolbar, only the window controls.
+        .windowStyle(.hiddenTitleBar)
+        .windowBackgroundDragBehavior(.enabled)
         .defaultLaunchBehavior(.suppressed)
     }
 }

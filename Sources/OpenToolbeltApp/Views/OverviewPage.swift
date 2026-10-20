@@ -7,19 +7,15 @@ struct OverviewPage: View {
     @Environment(Store.self) private var store
 
     var body: some View {
-        ScrollView {
-            OverviewContent()
-                .padding(Theme.Space.lg)
-                .frame(maxWidth: 1040)
-                .frame(maxWidth: .infinity)
-        }
-        .navigationTitle("Overview")
-        .navigationSubtitle(store.firstSeen.map { "since \(Format.day($0))" } ?? "")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { store.showingAddSkill = true } label: { Label("Add skills", systemImage: "plus") }
-                    .keyboardShortcut("n")
-                    .help("Add skills (⌘N)")
+        VStack(spacing: 0) {
+            PageBar(title: "Overview", detail: store.firstSeen.map { "since \(Format.day($0))" }) {
+                AddSkillsButton()
+            }
+            ScrollView {
+                OverviewContent()
+                    .padding(Theme.Space.lg)
+                    .frame(maxWidth: 1040)
+                    .frame(maxWidth: .infinity)
             }
         }
     }

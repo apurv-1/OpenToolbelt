@@ -34,7 +34,7 @@ Sizes are 15 for page titles, 13 for rows, 12 for supporting text and 11 for lab
 ## Space and shape
 
 Spacing steps are 8, 12, 16 and 24.
-Rows are 34pt tall. Page titles, search and the primary action live in the native window toolbar.
+Rows are 34pt tall. The window has no native title bar or toolbar: a custom sidebar sits on its own darker plane, and each page has a 52pt bar with its title, search and primary action.
 Corner radii are 6 for controls and rows, and 10 for panels.
 
 ## Components
@@ -42,7 +42,9 @@ Corner radii are 6 for controls and rows, and 10 for panels.
 All shared components are in `Components.swift` and `AgentIcon.swift`.
 
 - `StatusDot`: the matrix cell mark for used, never used, installed and absent.
+- `SearchField`: inline search with a ⌘F hint.
 - `KeyCap`: a keyboard shortcut hint.
+- `SidebarItem`, `PageBar`: the custom window chrome.
 - `IconButton`, `PrimaryButtonStyle`, `GhostButtonStyle`: the three button weights.
 - `MenuRow`: a command-palette row for the menu bar panel.
 - `AgentIcon`: an agent's logo in color or mono.

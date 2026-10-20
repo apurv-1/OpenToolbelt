@@ -5,7 +5,9 @@ import SwiftUI
 /// See docs/design-system.md for the rules behind them.
 enum Theme {
     enum Palette {
-        static let canvas = dynamic(light: 0xFAFAFA, dark: 0x0D0E10)
+        static let canvas = dynamic(light: 0xFCFCFC, dark: 0x0D0E10)
+        /// A touch darker than the canvas, so the sidebar reads as its own plane.
+        static let sidebar = dynamic(light: 0xF5F5F6, dark: 0x090A0B)
         static let surface = dynamic(light: 0xFFFFFF, dark: 0x131416)
         /// Hover and selection fill.
         static let raised = dynamic(light: 0xF1F1F2, dark: 0x1B1C1F)
