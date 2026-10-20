@@ -4,7 +4,9 @@ import OpenSkillsCore
 import SwiftUI
 
 /// Debug-only: renders the main views offscreen to PNGs in light and dark,
-/// for design review without screenshotting the desktop.
+/// for design review without screenshotting the desktop. AppKit-backed
+/// controls (List, TextField) do not render offscreen, so pages are composed
+/// from their content views.
 /// Usage: swift run OpenSkillsApp --snapshot <dir>
 @MainActor
 enum Snapshot {
@@ -13,13 +15,24 @@ enum Snapshot {
         let store = Store()
         store.apply(Audit.run())
         for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            // Dynamic colors resolve against the app appearance offscreen, so set both.
+            NSApplication.shared.appearance = NSAppearance(named: appearance)
             NSAppearance(named: appearance)!.performAsCurrentDrawingAppearance {
                 let scheme: ColorScheme = name == "dark" ? .dark : .light
-                write(PopoverView(), store, scheme, width: 340, to: directory.appendingPathComponent("popover-\(name).png"))
-                write(OverviewContent(section: .constant(.overview)), store, scheme, width: 880,
-                      to: directory.appendingPathComponent("overview-\(name).png"))
-                write(ItemListContent(title: "Skills", items: Array(store.items(.skill).prefix(14)), query: ""), store, scheme, width: 880,
-                      to: directory.appendingPathComponent("skills-\(name).png"))
+                write(PopoverView(), store, scheme, width: 300, to: directory.appendingPathComponent("popover-\(name).png"))
+                let skills = VStack(spacing: 0) {
+                    PageHeader(title: "All skills", count: store.rows.count) {}
+                    SummaryLine()
+                    Hairline()
+                    MatrixColumnHeader()
+                    Hairline()
+                    MatrixSections(sections: SkillSection.group(store.rows)).padding(.vertical, 8)
+                    Hairline()
+                    Legend()
+                }
+                write(skills, store, scheme, width: 900, to: directory.appendingPathComponent("skills-\(name).png"))
+                write(MCPServerList(servers: store.mcpServers), store, scheme, width: 900,
+                      to: directory.appendingPathComponent("mcp-\(name).png"))
             }
         }
     }
@@ -33,8 +46,7 @@ enum Snapshot {
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2
         guard let image = renderer.cgImage else { return }
-        let rep = NSBitmapImageRep(cgImage: image)
-        try? rep.representation(using: .png, properties: [:])?.write(to: url)
+        try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
     }
 }
 #endif

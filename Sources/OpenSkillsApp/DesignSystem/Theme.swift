@@ -5,21 +5,22 @@ import SwiftUI
 /// See docs/design-system.md for the rules behind them.
 enum Theme {
     enum Palette {
-        static let canvas = dynamic(light: 0xF4F5F4, dark: 0x0E1113)
-        static let surface = dynamic(light: 0xFFFFFF, dark: 0x171B1E)
-        static let sunken = dynamic(light: 0xEEF0EF, dark: 0x121518)
-        static let hairline = dynamic(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.07, darkAlpha: 0.08)
+        static let canvas = dynamic(light: 0xFAFAFA, dark: 0x0D0E10)
+        static let surface = dynamic(light: 0xFFFFFF, dark: 0x131416)
+        /// Hover and selection fill.
+        static let raised = dynamic(light: 0xF1F1F2, dark: 0x1B1C1F)
+        static let hairline = dynamic(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.08, darkAlpha: 0.07)
 
-        static let text = dynamic(light: 0x111414, dark: 0xF2F4F3)
-        static let textSecondary = dynamic(light: 0x5E6866, dark: 0x9AA4A1)
-        static let textTertiary = dynamic(light: 0x9AA3A0, dark: 0x5F6967)
+        static let text = dynamic(light: 0x18181B, dark: 0xEDEDEF)
+        static let textSecondary = dynamic(light: 0x6B6D74, dark: 0x8B8D94)
+        static let textTertiary = dynamic(light: 0xA0A2A8, dark: 0x5B5D63)
 
-        /// Phosphor mint. The text-safe shade on light, the glowing shade on dark.
-        static let accent = dynamic(light: 0x0FA673, dark: 0x7CF8C8)
-        static let accentSoft = dynamic(light: 0x12B981, dark: 0x7CF8C8, lightAlpha: 0.12, darkAlpha: 0.14)
-        /// Amber marks dead weight: installed, never used.
-        static let idle = dynamic(light: 0xB86E00, dark: 0xF5B544)
-        static let idleSoft = dynamic(light: 0xF59E0B, dark: 0xF5B544, lightAlpha: 0.14, darkAlpha: 0.14)
+        /// Used and alive. Soft mint, never loud.
+        static let accent = dynamic(light: 0x059669, dark: 0x6EE7B7)
+        static let accentSoft = dynamic(light: 0x059669, dark: 0x6EE7B7, lightAlpha: 0.10, darkAlpha: 0.12)
+        /// Installed but never used.
+        static let idle = dynamic(light: 0xB7791F, dark: 0xE3B341)
+        static let danger = dynamic(light: 0xDC2626, dark: 0xF87171)
 
         private static func dynamic(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
             Color(nsColor: NSColor(name: nil) { appearance in
@@ -30,30 +31,38 @@ enum Theme {
     }
 
     enum Space {
-        static let xxs: CGFloat = 4
         static let xs: CGFloat = 8
         static let sm: CGFloat = 12
         static let md: CGFloat = 16
         static let lg: CGFloat = 24
-        static let xl: CGFloat = 32
     }
 
     enum Radius {
-        static let pill: CGFloat = 6
-        static let control: CGFloat = 8
-        static let card: CGFloat = 14
-        static let hero: CGFloat = 18
+        static let control: CGFloat = 6
+        static let row: CGFloat = 6
+        static let panel: CGFloat = 10
+    }
+
+    enum Size {
+        static let row: CGFloat = 34
+        static let header: CGFloat = 52
+        static let agentColumn: CGFloat = 34
     }
 
     enum Font {
-        static let display = SwiftUI.Font.system(size: 30, weight: .semibold).monospacedDigit()
-        static let title = SwiftUI.Font.system(size: 20, weight: .semibold)
-        static let headline = SwiftUI.Font.system(size: 13, weight: .semibold)
+        static let title = SwiftUI.Font.system(size: 15, weight: .semibold)
         static let body = SwiftUI.Font.system(size: 13)
-        static let number = SwiftUI.Font.system(size: 13, weight: .medium).monospacedDigit()
-        static let caption = SwiftUI.Font.system(size: 11, weight: .medium)
-        /// Small uppercase labels above sections and stats.
-        static let eyebrow = SwiftUI.Font.system(size: 10, weight: .semibold)
+        static let bodyMedium = SwiftUI.Font.system(size: 13, weight: .medium)
+        static let secondary = SwiftUI.Font.system(size: 12)
+        static let number = SwiftUI.Font.system(size: 12, weight: .medium).monospacedDigit()
+        static let caption = SwiftUI.Font.system(size: 11)
+        static let section = SwiftUI.Font.system(size: 11, weight: .semibold)
+        static let mono = SwiftUI.Font.system(size: 11, design: .monospaced)
+    }
+
+    enum Motion {
+        static let quick = Animation.easeOut(duration: 0.12)
+        static let smooth = Animation.spring(duration: 0.28, bounce: 0.1)
     }
 }
 

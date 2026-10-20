@@ -1,105 +1,77 @@
 import SwiftUI
 
-/// A raised surface. Elevation comes from layered soft shadows and a hairline,
-/// not from heavy borders.
-struct Card<Content: View>: View {
-    var padding: CGFloat = Theme.Space.md
-    @ViewBuilder var content: Content
-
+struct Hairline: View {
     var body: some View {
-        content
-            .padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.Palette.surface, in: .rect(cornerRadius: Theme.Radius.card))
-            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.Palette.hairline, lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
-            .shadow(color: .black.opacity(0.05), radius: 12, y: 6)
+        Rectangle().fill(Theme.Palette.hairline).frame(height: 1)
     }
 }
 
-struct Eyebrow: View {
-    var text: String
+/// A keyboard shortcut hint, like ⌘N.
+struct KeyCap: View {
+    var keys: String
     var body: some View {
-        Text(text.uppercased())
-            .font(Theme.Font.eyebrow)
-            .tracking(0.6)
+        Text(keys)
+            .font(.system(size: 10.5, weight: .medium))
             .foregroundStyle(Theme.Palette.textTertiary)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 18, minHeight: 18)
+            .background(Theme.Palette.raised, in: .rect(cornerRadius: 4))
     }
 }
 
-/// A big number with a label, for headline stats.
-struct StatTile: View {
-    var label: String
-    var value: String
-    var detail: String
+/// The state of one skill in one agent, as a single mark.
+struct StatusDot: View {
+    enum State { case absent, installed, used, idle }
+    var state: State
 
     var body: some View {
-        Card(padding: Theme.Space.sm + 2) {
-            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-                Eyebrow(text: label)
-                Text(value).font(.system(size: 22, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Theme.Palette.text)
-                Text(detail).font(Theme.Font.caption).foregroundStyle(Theme.Palette.textSecondary)
+        switch state {
+        case .absent:
+            Circle().fill(Theme.Palette.textTertiary.opacity(0.35)).frame(width: 3, height: 3)
+        case .installed:
+            Circle().strokeBorder(Theme.Palette.textSecondary, lineWidth: 1.5).frame(width: 9, height: 9)
+        case .idle:
+            Circle().strokeBorder(Theme.Palette.idle, lineWidth: 1.5).frame(width: 9, height: 9)
+        case .used:
+            Circle().fill(Theme.Palette.accent).frame(width: 9, height: 9)
+                .shadow(color: Theme.Palette.accent.opacity(0.5), radius: 3)
+        }
+    }
+}
+
+/// Inline search field in the Raycast style.
+struct SearchField: View {
+    @Binding var text: String
+    var prompt: String
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Theme.Palette.textTertiary)
+            TextField(prompt, text: $text)
+                .textFieldStyle(.plain)
+                .font(Theme.Font.body)
+                .focused($focused)
+            if text.isEmpty {
+                KeyCap(keys: "⌘F")
+            } else {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.Palette.textTertiary)
+                }
+                .buttonStyle(.plain)
             }
         }
+        .padding(.horizontal, 9)
+        .frame(width: 240, height: 28)
+        .background(Theme.Palette.raised, in: .rect(cornerRadius: Theme.Radius.control))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control)
+            .strokeBorder(focused ? Theme.Palette.textTertiary : .clear, lineWidth: 1))
+        .background(Button("") { focused = true }.keyboardShortcut("f").hidden())
     }
 }
 
-enum PillTone {
-    /// `quiet` is text only, for secondary tags that repeat on every row.
-    case neutral, quiet, accent, idle
-
-    var foreground: Color {
-        switch self {
-        case .neutral: Theme.Palette.textSecondary
-        case .quiet: Theme.Palette.textTertiary
-        case .accent: Theme.Palette.accent
-        case .idle: Theme.Palette.idle
-        }
-    }
-
-    var background: Color {
-        switch self {
-        case .neutral: Theme.Palette.sunken
-        case .quiet: .clear
-        case .accent: Theme.Palette.accentSoft
-        case .idle: Theme.Palette.idleSoft
-        }
-    }
-}
-
-struct Pill: View {
-    var text: String
-    var tone: PillTone = .neutral
-
-    var body: some View {
-        Text(text)
-            .font(Theme.Font.caption)
-            .lineLimit(1)
-            .foregroundStyle(tone.foreground)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(tone.background, in: .rect(cornerRadius: Theme.Radius.pill))
-    }
-}
-
-/// A thin horizontal meter, used to compare use counts within a list.
-struct UsageBar: View {
-    var fraction: Double
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.Palette.sunken)
-                Capsule().fill(Theme.Palette.accent)
-                    .frame(width: max(fraction > 0 ? 3 : 0, geo.size.width * fraction))
-            }
-        }
-        .frame(height: 4)
-    }
-}
-
-/// Icon-only button with a quiet hover state.
+/// Icon-only button with a quiet hover fill.
 struct IconButton: View {
     var systemImage: String
     var help: String
@@ -112,7 +84,7 @@ struct IconButton: View {
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 26, height: 26)
                 .foregroundStyle(hovering ? Theme.Palette.text : Theme.Palette.textSecondary)
-                .background(hovering ? Theme.Palette.sunken : .clear, in: .rect(cornerRadius: Theme.Radius.control))
+                .background(hovering ? Theme.Palette.raised : .clear, in: .rect(cornerRadius: Theme.Radius.control))
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -122,17 +94,65 @@ struct IconButton: View {
     }
 }
 
-/// The primary action style: dark ink capsule, like the references.
-struct InkButtonStyle: ButtonStyle {
+/// The one primary action on a screen.
+struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(Theme.Palette.surface)
-            .padding(.horizontal, 12)
-            .frame(height: 26)
-            .background(Theme.Palette.text, in: .capsule)
-            .opacity(configuration.isPressed ? 0.8 : 1)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(Theme.Palette.canvas)
+            .padding(.horizontal, 11)
+            .frame(height: 28)
+            .background(Theme.Palette.text, in: .rect(cornerRadius: Theme.Radius.control))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(Theme.Motion.quick, value: configuration.isPressed)
+    }
+}
+
+/// Secondary actions: no fill until hovered.
+struct GhostButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        GhostLabel(configuration: configuration)
+    }
+
+    private struct GhostLabel: View {
+        var configuration: Configuration
+        @State private var hovering = false
+        var body: some View {
+            configuration.label
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Theme.Palette.textSecondary)
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(hovering || configuration.isPressed ? Theme.Palette.raised : .clear, in: .rect(cornerRadius: Theme.Radius.control))
+                .onHover { hovering = $0 }
+        }
+    }
+}
+
+/// A list row that highlights on hover, used in the menu bar panel.
+struct MenuRow<Leading: View>: View {
+    var title: String
+    var detail: String?
+    var shortcut: String?
+    @ViewBuilder var leading: Leading
+    var action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                leading.frame(width: 18, height: 18)
+                Text(title).font(Theme.Font.body).foregroundStyle(Theme.Palette.text)
+                Spacer(minLength: Theme.Space.xs)
+                if let detail { Text(detail).font(Theme.Font.number).foregroundStyle(Theme.Palette.textSecondary) }
+                if let shortcut { KeyCap(keys: shortcut) }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(hovering ? Theme.Palette.raised : .clear, in: .rect(cornerRadius: Theme.Radius.row))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
     }
 }

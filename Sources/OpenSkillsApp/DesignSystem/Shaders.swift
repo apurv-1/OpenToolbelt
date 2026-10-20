@@ -9,7 +9,7 @@ enum ShaderSource {
     using namespace metal;
 
     // frame: size.xy (px), time (s), display scale
-    // scope: center.xy (px), radius (px), dark appearance (0 or 1)
+    // scope: center.xy (px), radius (px)
     // meta:  blip count
     // blips: clock angle (rad), radius fraction, intensity
     struct Uniforms { float4 frame; float4 scope; float4 meta; float4 blips[16]; };
@@ -71,29 +71,6 @@ enum ShaderSource {
         col += (hash(p + fract(t) * 97.0) - 0.5) * 0.035;
         return float4(col, 1.0);
     }
-
-    // Soft drifting color fields with film grain, for light hero cards.
-    fragment float4 aurora(VOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
-        float2 size = u.frame.xy; float t = u.frame.z * 0.07; float dark = u.scope.w;
-        float aspect = size.x / max(size.y, 1.0);
-        float2 q = float2(in.uv.x * aspect, in.uv.y);
-        float2 a = float2((0.22 + 0.10 * sin(t * 1.3)) * aspect, 0.30 + 0.18 * cos(t * 1.1));
-        float2 b = float2((0.78 + 0.08 * cos(t * 0.9)) * aspect, 0.75 + 0.12 * sin(t * 1.7));
-        float2 e = float2((0.52 + 0.14 * sin(t * 0.7 + 1.0)) * aspect, 0.05 + 0.10 * cos(t * 1.3));
-        float fa = exp(-dot(q - a, q - a) * 2.6);
-        float fb = exp(-dot(q - b, q - b) * 2.2);
-        float fe = exp(-dot(q - e, q - e) * 3.0);
-        float3 base = mix(float3(0.972, 0.976, 0.970), float3(0.075, 0.090, 0.098), dark);
-        float3 mint = mix(float3(0.62, 0.95, 0.82), float3(0.12, 0.42, 0.32), dark);
-        float3 sky = mix(float3(0.80, 0.91, 0.99), float3(0.10, 0.20, 0.30), dark);
-        float3 sun = mix(float3(1.00, 0.92, 0.80), float3(0.26, 0.20, 0.14), dark);
-        float3 col = base;
-        col = mix(col, mint, fa * 0.85);
-        col = mix(col, sky, fb * 0.75);
-        col = mix(col, sun, fe * 0.60);
-        col += (hash(in.uv * size + fract(t) * 61.0) - 0.5) * 0.03;
-        return float4(col, 1.0);
-    }
     """
 }
 
@@ -116,12 +93,10 @@ struct Blip: Equatable {
 
 enum ShaderKind: Equatable {
     case radar(blips: [Blip])
-    case aurora
 
     var function: String {
         switch self {
         case .radar: "radar"
-        case .aurora: "aurora"
         }
     }
 }
@@ -141,7 +116,7 @@ final class ShaderRenderer {
               let vertex = library.makeFunction(name: "fullscreen") else { return nil }
         self.device = device
         self.queue = queue
-        for name in ["radar", "aurora"] {
+        for name in ["radar"] {
             let descriptor = MTLRenderPipelineDescriptor()
             descriptor.vertexFunction = vertex
             descriptor.fragmentFunction = library.makeFunction(name: name)
@@ -203,7 +178,6 @@ struct ShaderView: View {
     var scopeRadius: CGFloat = 60
 
     @Environment(\.displayScale) private var scale
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -225,7 +199,7 @@ struct ShaderView: View {
         var uniforms: [SIMD4<Float>] = [
             SIMD4(Float(width), Float(height), Float(time), Float(scale)),
             SIMD4(Float(scopeCenter.x * size.width * scale), Float(scopeCenter.y * size.height * scale),
-                  Float(scopeRadius * scale), colorScheme == .dark ? 1 : 0),
+                  Float(scopeRadius * scale), 0),
         ]
         var blips: [Blip] = []
         if case .radar(let list) = kind { blips = Array(list.prefix(16)) }

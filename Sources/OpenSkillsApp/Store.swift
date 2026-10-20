@@ -2,86 +2,138 @@ import Foundation
 import Observation
 import OpenSkillsCore
 
+/// What the skills screen is showing.
+enum SkillFilter: Hashable {
+    case all
+    case external
+    case idle
+    case agent(Agent)
+}
+
+enum Page: Hashable {
+    case skills(SkillFilter)
+    case mcpServers
+}
+
 /// Holds the latest audit and runs scans off the main thread.
 @MainActor @Observable
 final class Store {
-    private(set) var reports: [AgentReport] = []
+    private(set) var result: AuditResult?
     private(set) var isScanning = false
     private(set) var lastScan: Date?
-    /// nil shows every agent.
-    var agent: Agent?
+    var page: Page = .skills(.all)
+    var showingAddSkill = false
+    /// The `npx skills` runner shared by the add and remove flows.
+    let cli = SkillsCLI()
 
     func refresh() {
         guard !isScanning else { return }
         isScanning = true
         Task {
-            let reports = await Task.detached(priority: .userInitiated) { Audit.run() }.value
-            apply(reports)
+            let result = await Task.detached(priority: .userInitiated) { Audit.run() }.value
+            apply(result)
             isScanning = false
         }
     }
 
-    func apply(_ reports: [AgentReport]) {
-        self.reports = reports
+    func apply(_ result: AuditResult) {
+        self.result = result
         lastScan = .now
     }
 
-    private var visible: [AgentReport] {
-        reports.filter { agent == nil || $0.agent == agent }
+    var rows: [SkillRow] { result?.skills.rows ?? [] }
+    var columns: [AgentColumn] { result?.skills.agents ?? [] }
+    var detectedAgents: [Agent] { columns.filter(\.detected).map(\.agent) }
+
+    func rows(_ filter: SkillFilter) -> [SkillRow] {
+        switch filter {
+        case .all: rows
+        case .external: rows.filter(\.isExternal)
+        case .idle: rows.filter(\.isIdle)
+        case .agent(let agent): rows.filter { $0.cells[agent]?.installed == true }
+        }
     }
 
-    func items(_ kind: ItemKind) -> [ItemReport] {
-        visible.flatMap(\.items).filter { $0.item.kind == kind }
+    var externalSources: Int {
+        Set(rows.compactMap { if case .external(let source, _) = $0.origin { source } else { nil } }).count
     }
 
-    var neverUsed: [ItemReport] {
-        visible.flatMap(\.neverUsed)
+    var mcpServers: [(agent: Agent, item: ItemReport)] {
+        (result?.agents ?? []).flatMap { report in
+            report.items.filter { $0.item.kind == .mcpServer }.map { (report.agent, $0) }
+        }
     }
 
-    var ghosts: [(agent: Agent, ghost: GhostReport)] {
-        visible.flatMap { report in report.ghosts.map { (report.agent, $0) } }
-    }
-
-    var sessions: Int { visible.map(\.sessions).reduce(0, +) }
-
-    var firstSeen: Date? { visible.compactMap(\.firstSeen).min() }
-
-    var hasData: Bool { lastScan != nil }
-
-    /// Never-used items grouped by where they came from, largest group first.
-    /// Project-scoped items form one group, since folder names say little.
-    var neverUsedBySource: [(source: String, count: Int)] {
-        Dictionary(grouping: neverUsed, by: { $0.item.groupLabel })
-            .map { ($0.key, $0.value.count) }
-            .sorted { ($0.count, $1.source) > ($1.count, $0.source) }
-    }
+    var sessions: Int { columns.compactMap(\.sessions).reduce(0, +) }
+    var firstSeen: Date? { columns.compactMap(\.firstSeen).min() }
 
     func blips() -> [Blip] {
-        let all = visible.flatMap(\.items)
-        let used = all.filter { $0.uses > 0 }.sorted { $0.uses > $1.uses }.prefix(10)
-        let idle = all.filter { $0.uses == 0 }.prefix(6)
-        return used.map { Blip(name: $0.item.name, used: true) } + idle.map { Blip(name: $0.item.name, used: false) }
+        let used = rows.filter { $0.totalUses > 0 }.sorted { $0.totalUses > $1.totalUses }.prefix(10)
+        let idle = rows.filter(\.isIdle).prefix(6)
+        return used.map { Blip(name: $0.name, used: true) } + idle.map { Blip(name: $0.name, used: false) }
+    }
+}
+
+extension SkillRow {
+    var isExternal: Bool {
+        if case .external = origin { return true }
+        return false
+    }
+}
+
+/// Groups of rows as the matrix shows them: one per external source, then
+/// hand-made, plugin, claude.ai and built-in skills.
+struct SkillSection: Identifiable {
+    var title: String
+    var subtitle: String
+    var link: URL?
+    var rows: [SkillRow]
+    var collapsedByDefault: Bool
+    var id: String { subtitle + "/" + title }
+
+    static func group(_ rows: [SkillRow]) -> [SkillSection] {
+        var external: [String: [SkillRow]] = [:], links: [String: URL] = [:]
+        var local: [SkillRow] = [], plugins: [String: [SkillRow]] = [:], synced: [SkillRow] = []
+        var builtIn: [Agent: [SkillRow]] = [:]
+        for row in rows {
+            switch row.origin {
+            case .external(let source, let url):
+                external[source, default: []].append(row)
+                if let url, url.hasPrefix("http"), let link = URL(string: url.replacingOccurrences(of: ".git", with: "")) {
+                    links[source] = link
+                }
+            case .local: local.append(row)
+            case .plugin(let plugin): plugins[plugin, default: []].append(row)
+            case .synced: synced.append(row)
+            case .builtIn(let agent): builtIn[agent, default: []].append(row)
+            }
+        }
+        var sections = external.keys.sorted().map {
+            SkillSection(title: $0, subtitle: "npx skills", link: links[$0], rows: external[$0]!, collapsedByDefault: false)
+        }
+        if !local.isEmpty {
+            sections.append(SkillSection(title: "Local", subtitle: "added by hand", rows: local, collapsedByDefault: false))
+        }
+        sections += plugins.keys.sorted().map {
+            SkillSection(title: $0, subtitle: "Claude Code plugin", rows: plugins[$0]!, collapsedByDefault: true)
+        }
+        if !synced.isEmpty {
+            sections.append(SkillSection(title: "claude.ai", subtitle: "synced", rows: synced, collapsedByDefault: true))
+        }
+        sections += builtIn.keys.sorted { $0.rawValue < $1.rawValue }.map {
+            SkillSection(title: $0.displayName, subtitle: "built in", rows: builtIn[$0]!, collapsedByDefault: true)
+        }
+        return sections
     }
 }
 
 extension InstalledItem {
-    /// The name people recognize. Plugin MCP servers drop their
-    /// `plugin_<plugin>_` prefix, since the source pill already says it.
+    /// Plugin MCP servers drop their `plugin_<plugin>_` prefix for display.
     var displayName: String {
         if kind == .mcpServer, case .plugin(let plugin) = scope, name.hasPrefix("plugin_\(plugin)_") {
             return String(name.dropFirst("plugin_\(plugin)_".count))
         }
         return name
-    }
-
-    /// The source pill, or nil when it would only repeat the name.
-    var sourcePill: String? {
-        sourceLabel == displayName ? nil : sourceLabel
-    }
-
-    var groupLabel: String {
-        if case .project = scope { return "project skills" }
-        return sourceLabel
     }
 
     var sourceLabel: String {
@@ -91,14 +143,6 @@ extension InstalledItem {
         case .plugin(let plugin): plugin
         case .synced: "claude.ai"
         }
-    }
-}
-
-extension GhostReport {
-    /// claude.ai connectors show up as bare UUIDs; give them a readable label.
-    var displayName: String {
-        name.range(of: #"^[0-9a-f]{8}-[0-9a-f]{4}-"#, options: .regularExpression) != nil
-            ? "connector \(name.prefix(8))" : name
     }
 }
 

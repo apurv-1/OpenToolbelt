@@ -14,6 +14,8 @@ BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/OpenSkillsApp" "$APP/Contents/MacOS/OpenSkills"
+# SwiftPM resources (agent icons); Bundle.module finds them in Contents/Resources.
+cp -R "$BIN_DIR/OpenSkills_OpenSkillsApp.bundle" "$APP/Contents/Resources/"
 
 ICONSET="$(mktemp -d)/AppIcon.iconset"
 mkdir -p "$ICONSET"
