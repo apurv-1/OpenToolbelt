@@ -1,6 +1,6 @@
 # OpenSkills
 
-A local macOS menu bar app that shows which skills and MCP servers your coding agents actually use.
+A local macOS menu bar app that shows every skill your coding agents have, where each one came from, and which ones actually get used.
 
 > Working name. The final name is still open.
 
@@ -13,19 +13,30 @@ OpenSkills reads those transcripts and puts the answer next to what is installed
 
 ## What it shows
 
-- **Installed vs used** for every skill and MCP server, with use counts and the last time each one ran.
-- **Never used**: items that are installed but have not run once in the transcripts on this Mac.
-- **Not installed**: tools your agents called that no config declares, such as built-in tools, claude.ai connectors, or things you since removed.
-- **Sessions**: how many sessions were scanned and how far back they go.
+The main screen is a skill by agent matrix.
+Each row is a skill, and each column is an agent: Claude Code, Codex, Cursor, OpenCode, Windsurf and Gemini CLI.
+Each cell says whether the skill is installed in that agent and, where the agent keeps readable logs, whether it was used.
 
-It covers Claude Code and Codex CLI today.
-For Claude Code it reads user skills, project skills, plugin skills and MCP servers, claude.ai synced skills, and MCP servers from `~/.claude.json` and project `.mcp.json` files.
+Skills are grouped by where they came from:
+
+- **External**: installed with `npx skills add`, grouped by source repo, read from `~/.agents/.skill-lock.json`.
+- **Local**: skill folders added by hand.
+- **Plugins, claude.ai and built-in**: skills that ship with a Claude Code plugin, sync from claude.ai, or come with the agent.
+
+You can add skills from the app.
+Paste `owner/repo`, a git URL or a local path, pick agents, and it runs `npx skills add` for you.
+External skills can be removed the same way.
+
+Usage comes from Claude Code and Codex session logs today.
+Other agents show whether a skill is installed, and mark usage as not tracked.
+An MCP servers page lists servers from Claude Code and Codex with their use counts.
 
 ## Privacy
 
 Everything stays on your Mac.
-The app makes no network calls and has no telemetry.
-It only reads agent config and transcripts, and it never writes to them.
+The app has no telemetry.
+It reads agent config and transcripts and never edits them.
+The only time it changes anything is when you add or remove a skill, and then it runs `npx skills`, which fetches the source you asked for.
 
 ## Install
 
@@ -82,10 +93,11 @@ Project-scoped items only count usage from sessions that ran inside that project
 
 ## Roadmap
 
-- An activity log per skill and MCP server: which commands ran, which files changed, and which hosts were contacted while it was active.
-- Disable or remove never-used items, with a backup first.
+- Usage from Cursor, OpenCode and Gemini CLI session logs.
+- An activity log per skill: which commands ran, which files changed, and which hosts were contacted while it was active.
 - More agents.
 
 ## License
 
-MIT
+MIT.
+Agent logos come from [lobe-icons](https://github.com/lobehub/lobe-icons) (MIT) and belong to their owners.

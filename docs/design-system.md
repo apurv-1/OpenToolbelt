@@ -1,73 +1,62 @@
 # Design system
 
-The app looks like an instrument: a quiet, light workspace with one live radar at its center.
+The app is a calm, dense tool in the spirit of Linear and Raycast, with one small live radar as its signature.
 All tokens live in `Sources/OpenSkillsApp/DesignSystem/Theme.swift`, and views never hard-code colors or sizes.
 
 ## Principles
 
-- **Quiet surfaces, one loud element.** Cards are white on a soft gray canvas. The radar is the only dark, moving thing on screen.
-- **Shadows, not borders.** Elevation comes from two soft shadows and a 0.5pt hairline. Heavy outlines are not used.
-- **Color carries meaning.** Mint means used and alive. Amber means installed but never used. Everything else is grayscale.
-- **Numbers first.** Stats lead with a large monospaced number, then a short label.
+- **Calm and dense, like Linear and Raycast.** Small type, tight rows, hairlines instead of cards and shadows.
+- **Monochrome first.** Almost everything is a shade of gray. Color only marks state.
+- **Color carries meaning.** Mint means used. Amber means installed but never used. A gray ring means installed but usage is not tracked.
+- **Brand marks over labels.** Agents appear as their own logos, in color where it helps recognition and in mono inside the dense grid.
+- **One live element.** The small radar in the menu bar panel is the only thing that moves.
 
 ## Color
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `canvas` | `#F4F5F4` | `#0E1113` | Window and panel background |
-| `surface` | `#FFFFFF` | `#171B1E` | Cards |
-| `sunken` | `#EEF0EF` | `#121518` | Pills, tracks, hover |
-| `text` | `#111414` | `#F2F4F3` | Primary text |
-| `textSecondary` | `#5E6866` | `#9AA4A1` | Supporting text |
-| `textTertiary` | `#9AA3A0` | `#5F6967` | Labels and timestamps |
-| `accent` | `#0FA673` | `#7CF8C8` | Used, live, primary data |
-| `idle` | `#B86E00` | `#F5B544` | Never used |
-
-The accent has a darker shade on light backgrounds so text stays readable, and a glowing shade on dark ones.
+| `canvas` | `#FAFAFA` | `#0D0E10` | Window background |
+| `surface` | `#FFFFFF` | `#131416` | Panels, sheets, the menu bar panel |
+| `raised` | `#F1F1F2` | `#1B1C1F` | Hover, selection, fields |
+| `hairline` | black 8% | white 7% | Dividers and edges |
+| `text` | `#18181B` | `#EDEDEF` | Primary text |
+| `textSecondary` | `#6B6D74` | `#8B8D94` | Supporting text |
+| `textTertiary` | `#A0A2A8` | `#5B5D63` | Labels, counts, timestamps |
+| `accent` | `#059669` | `#6EE7B7` | Used |
+| `idle` | `#B7791F` | `#E3B341` | Never used |
+| `danger` | `#DC2626` | `#F87171` | Errors |
 
 ## Type
 
-System font throughout.
-Numbers use monospaced digits so columns line up.
-
-| Token | Size | Weight | Use |
-|---|---|---|---|
-| `display` | 30 | Semibold | Hero number |
-| `title` | 20 | Semibold | Page titles |
-| `headline` | 13 | Semibold | Emphasis |
-| `body` | 13 | Regular | Rows and copy |
-| `number` | 13 | Medium | Counts in rows |
-| `caption` | 11 | Medium | Pills, details |
-| `eyebrow` | 10 | Semibold, uppercase, tracked | Section and stat labels |
+System font throughout, with monospaced digits for counts.
+Sizes are 15 for page titles, 13 for rows, 12 for supporting text and 11 for labels.
 
 ## Space and shape
 
-Spacing steps are 4, 8, 12, 16, 24 and 32.
-Corner radii are 6 for pills, 8 for controls, 14 for cards and 18 for hero cards.
+Spacing steps are 8, 12, 16 and 24.
+Rows are 34pt tall and the page header is 52pt.
+Corner radii are 6 for controls and rows, and 10 for panels.
 
 ## Components
 
-All components are in `Components.swift`.
+All shared components are in `Components.swift` and `AgentIcon.swift`.
 
-- `Card`: a raised surface with the standard shadow and hairline.
-- `StatTile`: an eyebrow label, a large number and a detail line.
-- `Pill`: a small tag. Tones are `neutral`, `quiet`, `accent` and `idle`.
-- `UsageBar`: a thin meter for comparing counts in a list.
-- `IconButton`: an icon-only button with a quiet hover fill.
-- `InkButtonStyle`: the primary action, a dark capsule.
+- `StatusDot`: the matrix cell mark for used, never used, installed and absent.
+- `SearchField`: inline search with a ⌘F hint.
+- `KeyCap`: a keyboard shortcut hint.
+- `IconButton`, `PrimaryButtonStyle`, `GhostButtonStyle`: the three button weights.
+- `MenuRow`: a command-palette row for the menu bar panel.
+- `AgentIcon`: an agent's logo in color or mono.
 
 ## Shaders
 
-The shader backdrops are fragment shaders written in Metal Shading Language, in `Shaders.swift`.
-They compile at runtime with the Metal framework, so building the app needs no offline Metal toolchain.
-
-- `radar`: a scope with a graticule, a phosphor sweep, and one blip per item. Used items glow and flare as the beam passes. Unused items stay dim. Each blip's position comes from a hash of the item name, so it is stable across launches.
-- `aurora`: slow drifting color fields with film grain, used behind the overview hero.
-
-`ShaderView` renders at 30 fps while visible.
-When Reduce Motion is on, it renders one still frame instead.
+The radar is a fragment shader in Metal Shading Language, in `Shaders.swift`.
+It compiles at runtime with the Metal framework, so building needs no offline Metal toolchain.
+Each blip is one skill: used skills glow and flare as the beam passes, unused ones stay dim.
+`ShaderView` renders at 30 fps while visible and holds a still frame when Reduce Motion is on.
 
 ## Icons
 
 The app icon is drawn by `Design/AppIcon/make-icon.swift`.
-The menu bar glyph is drawn in code by `MenuBarIcon.swift` as a template image, so macOS tints it for light and dark menu bars.
+The menu bar glyph is drawn in code by `MenuBarIcon.swift` as a template image.
+Agent logos are SVGs from lobe-icons in `Sources/OpenSkillsApp/Resources/AgentIcons`.
